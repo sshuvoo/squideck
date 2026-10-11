@@ -21,6 +21,7 @@ import com.example.squideck.ui.game.LobbyScreen
 import com.example.squideck.ui.theme.Background
 import com.example.squideck.ui.theme.BackgroundTop
 import com.example.squideck.ui.theme.Black
+import com.example.squideck.ui.theme.OnDark
 import com.example.squideck.ui.theme.SquideckTheme
 
 class MainActivity : ComponentActivity() {
@@ -37,12 +38,13 @@ class MainActivity : ComponentActivity() {
                 Scaffold(
                     modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(BackgroundTop, Background, Black))),
                     containerColor = Color.Transparent,
+                    contentColor = OnDark,
                 ) { innerPadding ->
                     val content = Modifier.padding(innerPadding)
                     if (state.session.game == null) {
-                        LobbyScreen(state.session, viewModel::startGame, content)
+                        LobbyScreen(state.session, viewModel::startGame, viewModel::refillWallet, content)
                     } else {
-                        GameScreen(state, viewModel::selectCard, viewModel::passSelected, viewModel::restart, content)
+                        GameScreen(state, viewModel::selectCard, viewModel::passSelected, viewModel::restart, viewModel::takeControl, viewModel::leave, content)
                     }
                 }
             }

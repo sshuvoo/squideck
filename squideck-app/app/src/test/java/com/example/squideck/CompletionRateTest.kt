@@ -7,7 +7,7 @@ import org.junit.Test
 
 class CompletionRateTest {
     @Test
-    fun mostBotRoundsComplete() {
+    fun botRoundsCompleteWithThreeWinners() {
         val engine = GameEngine(); val strategy = FewestMatchesStrategy()
         val players = List(5) { Player(it, "P$it", it == 0, it != 0) }
         var done = 0; val n = 500; var maxMoves = 0
@@ -21,6 +21,6 @@ class CompletionRateTest {
             maxMoves = maxOf(maxMoves, moves)
         }
         println("RATE completed=$done of $n maxMoves=$maxMoves")
-        assertTrue(done > n * 0.7)
+        assertTrue(done > n * 0.95)
     }
 }

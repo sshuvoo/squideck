@@ -11,6 +11,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.example.squideck.domain.session.SessionState
 
 @Composable
-fun LobbyScreen(state: SessionState, onStart: () -> Unit, modifier: Modifier = Modifier) {
+fun LobbyScreen(state: SessionState, onStart: () -> Unit, onRefillWallet: () -> Unit, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
@@ -48,8 +49,18 @@ fun LobbyScreen(state: SessionState, onStart: () -> Unit, modifier: Modifier = M
                 }
             }
         }
+        val economy = state.economy
+        Text(
+            "Entry ${economy.entryCost} \u00b7 Balance ${state.balance}",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.labelLarge,
+        )
         Button(onClick = onStart, enabled = state.canStart, modifier = Modifier.fillMaxWidth()) {
             Text("Start game")
+        }
+        if (!state.canAffordEntry) {
+            Text("Not enough balance to play.", color = MaterialTheme.colorScheme.primary)
+            TextButton(onClick = onRefillWallet) { Text("Add demo balance") }
         }
     }
 }

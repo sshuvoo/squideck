@@ -241,13 +241,13 @@ The game has three winning positions:
 
 The first player to satisfy the winning condition receives first place.
 
-The second and third players to satisfy the winning condition receive second and third place, respectively, subject to confirmation of the tie-breaking rules.
+The second and third players to satisfy the winning condition receive second and third place, respectively. Simultaneous wins cannot occur because only the passing player is checked after each transfer.
 
 A player must not receive multiple winning positions within the same round.
 
 ### 8.3 Losing Condition
 
-After three distinct players have secured winning positions, the other two players are classified as losers.
+After three distinct players have secured winning positions, the other two players are classified as losers. The two losers are not ranked against each other.
 
 The game is then complete.
 
@@ -279,7 +279,7 @@ These invariants must remain true throughout a game.
 10. Four matching eligible regular cards are required to win.
 11. A player cannot claim a winning position without satisfying the winning condition.
 12. A round has no more than three winning positions.
-13. After three distinct winners have been recorded, the remaining two players are losers.
+13. After three distinct winners have been recorded, the remaining two players are losers and the round is complete.
 14. A completed round cannot accept additional gameplay actions.
 15. Restarting creates a new round with fresh card distribution and no inherited card ownership.
 
@@ -351,6 +351,30 @@ Confirmed by the user and implemented in `squideck-app` (local bot mode):
 - **Received-card rule (revised 2026-10-12, again):** When a player receives a card, they cannot pass that card or any other card of the same symbol on their next move (e.g. after receiving a Circle, no Circle in their hand is passable). Other symbols are passable. The strict "never pass a received card" reading deadlocked ~99% of simulated rounds, so it was replaced. The Phantom is blocked on the initial holder's first move; assumption (unconfirmed): a received Phantom blocks only itself, since it has no symbol.
 - **Winners:** A player wins at the end of their own move: after passing, the cards they still hold include four matching regular cards (e.g. holding four Circles plus a Star, with the Circles blocked, they pass the Star and win). Receiving the fourth matching card does not win by itself, and the player is not removed from play until they actually pass. A winner is recorded 1st/2nd/3rd, keeps their hand, is skipped in the turn order and no longer receives passes. Only the passer is checked after each transfer, so simultaneous wins cannot occur.
 
+- **Three winners (confirmed again 2026-10-12):** The round ends as soon as three players have won; the other two lose and receive nothing. A short-lived experiment with a four-winner round was reverted at the user's request.
+- **Turn timer and auto-play (2026-10-12):** Every player has a limited time per turn. If the active player does not move in time, a bot plays for them. The bot keeps playing that player's turns until the player touches the game to take control again, at which point they get a fresh full turn. Bots move after a random think time (default 1.5s–6s, always inside the limit) so they do not all move at the same pace.
+- **Turn time limit:** 15 seconds (`GameConfig.turnTimeLimitMs`). The value was not specified by the user and is an assumption.
+- **Timer UX:** Opponents show a countdown ring around their avatar plus the seconds left, switching from pink to amber in the last 5 seconds. The local player, who has no avatar, sees the countdown on the Pass button itself (draining fill + seconds). During auto-play the button reads "Auto-playing for you · tap to take control"; tapping it or any card hands control back.
+
+- **Leave button (2026-10-12):** The player can leave a game from the game screen (top-left Leave button or the system Back button). During a round this asks for confirmation; after the round ends it leaves immediately. In local bot mode leaving abandons the round and returns to the waiting lobby. What leaving mid-round means for the other players in real multiplayer (bot takeover, forfeit, round cancelled) is still an open decision.
+
+- **Coin economy (2026-10-12, revised):**
+  - Money is tracked as whole US cents and shown as dollars (e.g. 10 cents = `$0.10`). For now it is play money with a local demo wallet; no real payments.
+  - Every game has a stake `S`. A player pays an entry cost equal to the stake (no extra fee on top) and must hold at least that many coins to join or start a game. Default `S` = 10 cents; the stake is one setting, any even number of cents. Starting demo balance: 500 cents.
+  - Payouts: 1st `2 × S`, 2nd `1.5 × S`, 3rd `1 × S` (their stake back). The two players who do not win get `0`; they are not ranked against each other.
+  - The platform keeps `0.5 × S` per game: 5 players pay `5 × S`, prizes total `4.5 × S`, the remainder is the maintenance fee.
+  - Net result per player: 1st `+1 × S`, 2nd `+0.5 × S`, 3rd `0`, losers `-1 × S`. With `S` = 10 cents: entry 10, payouts 20 / 15 / 10 / 0 / 0, platform fee 5.
+  - History: an earlier version charged a 10% fee on top of the stake and paid a 4th-place prize of `0.5 × S`; that was dropped when the 4th-place prize was removed, because the numbers then balance without it.
+  - The coin ledger must be server-authoritative in the multiplayer API; the app only displays balances.
+
+### Open decisions: coin economy
+
+- The coin's name (Vermil and Kurenai were suggested; no name chosen yet), stake tiers, and how players get coins beyond the local demo wallet (top-ups, purchases).
+- When the entry cost is debited (currently when the round starts) and whether it is refunded if the game never starts.
+- What happens to stakes when a player leaves mid-round. Current local behaviour (assumption): the entry is already paid and is forfeited. Auto-play from the turn timer plays on normally and still earns the prize.
+- What happens when a round ends in a stalemate. Current behaviour (assumption): every entry is refunded.
+- Real-money play: Google Play only allows real-money gambling apps from licensed, Google-approved operators (free to download, no In-app Billing, age and region blocking). Legal review is needed before enabling real money.
+
 ### Implementation assumptions (not user-confirmed)
 
 - Restart in local bot mode reuses the same five players; session-level restart behavior stays open for the multiplayer API.
@@ -358,7 +382,7 @@ Confirmed by the user and implemented in `squideck-app` (local bot mode):
 
 ### Simulation result
 
-With the confirmed rules above, 500 bot-only simulated rounds all finished with three winners (longest: 144 moves). The `Stalemate` state (no active player has a legal card) is kept as a safeguard but did not occur in these runs.
+With the confirmed rules above (three winners), 500 bot-only simulated rounds all finished with three winners (longest: 202 moves). The `Stalemate` state (no active player has a legal card) is kept as a safeguard but did not occur in these runs.
 
 ## 12. Agent Implementation Directives
 

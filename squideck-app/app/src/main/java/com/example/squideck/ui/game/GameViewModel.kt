@@ -36,7 +36,18 @@ class GameViewModel(sessionFactory: (CoroutineScope) -> GameSession) : ViewModel
         session.restart()
     }
 
+    fun takeControl() = session.takeControl()
+
+    fun refillWallet() = session.refillWallet()
+
+    fun leave() {
+        selectedCardId.value = null
+        session.leave()
+    }
+
+    /** Any touch on a card while auto-play is running hands control back to the player. */
     fun selectCard(cardId: Int) {
+        if (session.state.value.autoPlay) session.takeControl()
         if (cardId !in session.state.value.legalCardIds) return
         selectedCardId.update { if (it == cardId) null else cardId }
     }

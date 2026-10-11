@@ -16,11 +16,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.squideck.domain.Card
 import com.example.squideck.ui.theme.MaskBlack
 import com.example.squideck.ui.theme.MaskWhite
 import com.example.squideck.ui.theme.Pink
+
+val CardBaseWidth = 76.dp
+val CardBaseHeight = 108.dp
 
 @Composable
 fun CardView(
@@ -31,12 +36,15 @@ fun CardView(
     enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    width: Dp = CardBaseWidth,
 ) {
+    val height = width * (CardBaseHeight / CardBaseWidth)
+    val compact = width < CardBaseWidth
     val lift by animateDpAsState(if (selected) (-14).dp else 0.dp, label = "lift")
     Surface(
         modifier = modifier
             .offset(y = lift)
-            .size(width = 76.dp, height = 108.dp)
+            .size(width = width, height = height)
             .alpha(if (enabled || selected) 1f else 0.55f)
             .clickable(enabled = enabled, onClick = onClick),
         shape = RoundedCornerShape(14.dp),
@@ -47,7 +55,7 @@ fun CardView(
             verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            SymbolIcon(card.symbol, Modifier.size(44.dp))
+            SymbolIcon(card.symbol, Modifier.size(width * 0.58f))
             Text(
                 text = when {
                     card.isPhantom -> "Phantom"
@@ -56,6 +64,8 @@ fun CardView(
                     else -> card.symbol!!.name
                 },
                 style = MaterialTheme.typography.labelSmall,
+                fontSize = if (compact) 9.sp else MaterialTheme.typography.labelSmall.fontSize,
+                maxLines = 1,
                 color = if (received || blocked) Pink else MaskWhite.copy(alpha = 0.75f),
             )
         }

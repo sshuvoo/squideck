@@ -13,5 +13,6 @@ val PinkDark = Color(0xFFB01548)
 val OnDark = Color(0xFFF6F2EF)
 val Muted = Color(0xFF86B3A8)
 
+val Amber = Color(0xFFFFB02E)
 val MaskWhite = Color(0xFFFFFFFF)
 val MaskBlack = Color(0xFF000000)
