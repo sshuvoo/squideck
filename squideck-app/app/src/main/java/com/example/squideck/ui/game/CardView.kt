@@ -1,0 +1,63 @@
+package com.example.squideck.ui.game
+
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.unit.dp
+import com.example.squideck.domain.Card
+import com.example.squideck.ui.theme.MaskBlack
+import com.example.squideck.ui.theme.MaskWhite
+import com.example.squideck.ui.theme.Pink
+
+@Composable
+fun CardView(
+    card: Card,
+    selected: Boolean,
+    received: Boolean,
+    blocked: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val lift by animateDpAsState(if (selected) (-14).dp else 0.dp, label = "lift")
+    Surface(
+        modifier = modifier
+            .offset(y = lift)
+            .size(width = 76.dp, height = 108.dp)
+            .alpha(if (enabled || selected) 1f else 0.55f)
+            .clickable(enabled = enabled, onClick = onClick),
+        shape = RoundedCornerShape(14.dp),
+        color = MaskBlack,
+        border = BorderStroke(if (selected) 3.dp else 1.5.dp, if (selected) Pink else MaskWhite.copy(alpha = 0.3f)),
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            SymbolIcon(card.symbol, Modifier.size(44.dp))
+            Text(
+                text = when {
+                    card.isPhantom -> "Phantom"
+                    received -> "Received"
+                    blocked -> "Blocked"
+                    else -> card.symbol!!.name
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = if (received || blocked) Pink else MaskWhite.copy(alpha = 0.75f),
+            )
+        }
+    }
+}

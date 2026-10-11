@@ -3,45 +3,49 @@ package com.example.squideck
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.squideck.ui.game.GameScreen
+import com.example.squideck.ui.game.GameViewModel
+import com.example.squideck.ui.game.LobbyScreen
+import com.example.squideck.ui.theme.Background
+import com.example.squideck.ui.theme.BackgroundTop
+import com.example.squideck.ui.theme.Black
 import com.example.squideck.ui.theme.SquideckTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+        )
         setContent {
             SquideckTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                val viewModel: GameViewModel = viewModel(factory = GameViewModel.Factory)
+                val state by viewModel.state.collectAsState()
+                Scaffold(
+                    modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(BackgroundTop, Background, Black))),
+                    containerColor = Color.Transparent,
+                ) { innerPadding ->
+                    val content = Modifier.padding(innerPadding)
+                    if (state.session.game == null) {
+                        LobbyScreen(state.session, viewModel::startGame, content)
+                    } else {
+                        GameScreen(state, viewModel::selectCard, viewModel::passSelected, viewModel::restart, content)
+                    }
                 }
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    SquideckTheme {
-        Greeting("Android")
     }
 }

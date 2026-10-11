@@ -342,6 +342,24 @@ The following decisions are intentionally left unresolved because the current gu
 
 These decisions should be confirmed before implementing the affected behavior.
 
+## 11.1 Confirmed Decisions (2026-10-12)
+
+Confirmed by the user and implemented in `squideck-app` (local bot mode):
+
+- **Card composition:** 4 symbol sets × 5 copies = 20 regular cards. The 4 symbols are chosen randomly per round from the 5 eligible symbols. The Phantom is an additional 21st card.
+- **Turn order:** Clockwise, wrapping from the last seat to the first. If the active player has no legal card to pass, their turn is skipped.
+- **Received-card rule (revised 2026-10-12, again):** When a player receives a card, they cannot pass that card or any other card of the same symbol on their next move (e.g. after receiving a Circle, no Circle in their hand is passable). Other symbols are passable. The strict "never pass a received card" reading deadlocked ~99% of simulated rounds, so it was replaced. The Phantom is blocked on the initial holder's first move; assumption (unconfirmed): a received Phantom blocks only itself, since it has no symbol.
+- **Winners:** A player wins at the end of their own move: after passing, the cards they still hold include four matching regular cards (e.g. holding four Circles plus a Star, with the Circles blocked, they pass the Star and win). Receiving the fourth matching card does not win by itself, and the player is not removed from play until they actually pass. A winner is recorded 1st/2nd/3rd, keeps their hand, is skipped in the turn order and no longer receives passes. Only the passer is checked after each transfer, so simultaneous wins cannot occur.
+
+### Implementation assumptions (not user-confirmed)
+
+- Restart in local bot mode reuses the same five players; session-level restart behavior stays open for the multiplayer API.
+- If no active player has a legal card, the round ends in a `Stalemate` state with no further positions awarded.
+
+### Simulation result
+
+With the confirmed rules above, 500 bot-only simulated rounds all finished with three winners (longest: 144 moves). The `Stalemate` state (no active player has a legal card) is kept as a safeguard but did not occur in these runs.
+
 ## 12. Agent Implementation Directives
 
 When implementing this game's business logic:
