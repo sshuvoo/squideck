@@ -16,6 +16,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -46,7 +48,16 @@ fun CardView(
             .offset(y = lift)
             .size(width = width, height = height)
             .alpha(if (enabled || selected) 1f else 0.55f)
-            .clickable(enabled = enabled, onClick = onClick),
+            .clickable(enabled = enabled, onClick = onClick)
+            .semantics(mergeDescendants = true) {
+                contentDescription = buildString {
+                    append(if (card.isImposter) "Imposter" else card.symbol!!.name)
+                    append(" card")
+                    if (received) append(", just received")
+                    if (blocked) append(", blocked this turn")
+                    if (selected) append(", selected")
+                }
+            },
         shape = RoundedCornerShape(14.dp),
         color = MaskBlack,
         border = BorderStroke(if (selected) 3.dp else 1.5.dp, if (selected) Pink else MaskWhite.copy(alpha = 0.3f)),

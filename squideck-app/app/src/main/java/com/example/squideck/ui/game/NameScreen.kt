@@ -1,5 +1,6 @@
 package com.example.squideck.ui.game
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,7 +30,8 @@ import com.example.squideck.ui.theme.Pink
 
 /** First screen: who are you? The name is what other players see at the table. */
 @Composable
-fun NameScreen(initialName: String, onContinue: (String) -> Unit, modifier: Modifier = Modifier) {
+fun NameScreen(initialName: String, onContinue: (String) -> Unit, onBack: (() -> Unit)?, modifier: Modifier = Modifier) {
+    BackHandler(enabled = onBack != null) { onBack?.invoke() }
     var name by rememberSaveable { mutableStateOf(initialName) }
     val valid = PlayerName.isValid(name)
     Column(
@@ -37,8 +39,9 @@ fun NameScreen(initialName: String, onContinue: (String) -> Unit, modifier: Modi
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("SQUIDECK", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Black)
-        Text("What should we call you?", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        BrandMark(Modifier.padding(bottom = 12.dp), large = true)
+        Text("What should we call you?", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text("Other players see this name at the table.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         OutlinedTextField(
             value = name,
             onValueChange = { name = it.take(PlayerName.MAX_LENGTH) },

@@ -1,5 +1,6 @@
 package com.example.squideck.ui.game
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -9,9 +10,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -30,39 +30,56 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.squideck.domain.Player
 import com.example.squideck.domain.session.SessionState
-import com.example.squideck.ui.components.GameButton
-import com.example.squideck.ui.components.GameButtonSize
-import com.example.squideck.ui.components.GameButtonStyle
+import com.example.squideck.ui.components.GameTopBar
+import com.example.squideck.ui.theme.MaskWhite
 import com.example.squideck.ui.theme.Pink
 
 /** The waiting room: you sit alone, then players "join from the internet" one at a time; the round starts by itself. */
 @Composable
 fun LobbyScreen(state: SessionState, onLeave: () -> Unit, modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxSize()) {
+    BackHandler(onBack = onLeave)
+    val economy = state.economy
+    Column(Modifier.then(modifier).fillMaxSize().padding(start = 24.dp, end = 24.dp, bottom = 24.dp)) {
+        GameTopBar(onLeave = onLeave, credits = state.balance)
         Column(
-            Modifier.fillMaxSize().padding(24.dp),
+            Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text("${state.economy.entryCost} table", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
+            Text("${economy.entryCost} table", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
             Text(
-                if (state.players.size < state.playerCount) "Waiting for players (${state.players.size}/${state.playerCount})"
-                else "Table full — starting…",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                if (!state.isTableFull) "Waiting for players (${state.players.size}/${state.playerCount})"
+                else "Table full \u2014 starting\u2026",
+                color = if (state.isTableFull) Pink else MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = if (state.isTableFull) FontWeight.Bold else FontWeight.Normal,
             )
+            SeatProgress(filled = state.players.size, total = state.playerCount)
             repeat(state.playerCount) { seat ->
                 LobbySlot(state.players.getOrNull(seat))
             }
             Text(
-                "Entry ${state.economy.entryCost} · Credits ${state.balance}",
+                "1st ${economy.payoutFor(1)}  \u00b7  2nd ${economy.payoutFor(2)}  \u00b7  3rd ${economy.payoutFor(3)}",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.labelLarge,
             )
         }
-        GameButton(
-            "Leave", onLeave, Modifier.align(Alignment.TopStart).padding(start = 8.dp, top = 4.dp),
-            style = GameButtonStyle.Ghost, size = GameButtonSize.Small, leading = "✕",
-        )
+    }
+}
+
+/** Five segments that light up as seats fill. */
+@Composable
+private fun SeatProgress(filled: Int, total: Int) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        repeat(total) { index ->
+            val on by animateFloatAsState(if (index < filled) 1f else 0f, tween(400), label = "seat$index")
+            Box(
+                Modifier
+                    .weight(1f)
+                    .height(6.dp)
+                    .background(MaskWhite.copy(alpha = 0.12f), RoundedCornerShape(50))
+                    .background(Pink.copy(alpha = on), RoundedCornerShape(50)),
+            )
+        }
     }
 }
 
@@ -102,13 +119,5 @@ private fun LobbySlot(player: Player?) {
                 }
             }
         }
-    }
-}
-
-/** The local player has no avatar, so their slot shows the first letter of their name. */
-@Composable
-private fun InitialBadge(name: String) {
-    Box(Modifier.size(56.dp).background(Pink, CircleShape), contentAlignment = Alignment.Center) {
-        Text(name.take(1).uppercase(), fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleLarge)
     }
 }

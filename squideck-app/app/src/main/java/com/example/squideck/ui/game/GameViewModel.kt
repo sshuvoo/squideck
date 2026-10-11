@@ -39,6 +39,7 @@ data class GameUiState(
     val selectedCardId: Int? = null,
 ) {
     val canAffordEntry: Boolean get() = credits >= economy.entryCost
+    val hasName: Boolean get() = playerName.isNotBlank()
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -86,6 +87,11 @@ class GameViewModel(
 
     fun changeName() {
         editingName.value = true
+    }
+
+    /** Back out of editing; only possible once a name exists. */
+    fun cancelNameChange() {
+        if (!playerName.value.isNullOrBlank()) editingName.value = false
     }
 
     /** Sits the player at the (only) 10-cent table; the entry is charged when the round starts. */

@@ -5,6 +5,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -45,15 +51,28 @@ class MainActivity : ComponentActivity() {
                 ) { innerPadding ->
                     val content = Modifier.padding(innerPadding)
                     val table = state.session
-                    when (state.screen) {
-                        Screen.Name -> NameScreen(state.playerName, viewModel::submitName, content)
-                        Screen.GameList -> GameListScreen(state, viewModel::joinTable, viewModel::changeName, viewModel::refillWallet, content)
-                        Screen.Lobby -> if (table != null) LobbyScreen(table, viewModel::leaveTable, content)
-                        Screen.Game -> if (table != null) {
-                            GameScreen(
-                                table, state.selectedCardId, viewModel::selectCard, viewModel::passSelected,
-                                viewModel::restart, viewModel::takeControl, viewModel::leaveTable, content,
+                    // Screens cross-fade with a slight rise so moving between them feels like one app, not page loads.
+                    AnimatedContent(
+                        targetState = state.screen,
+                        transitionSpec = {
+                            (fadeIn(tween(280)) + slideInVertically(tween(280)) { it / 16 }) togetherWith fadeOut(tween(180))
+                        },
+                        label = "screen",
+                    ) { screen ->
+                        when (screen) {
+                            Screen.Name -> NameScreen(
+                                state.playerName, viewModel::submitName,
+                                onBack = if (state.hasName) viewModel::cancelNameChange else null,
+                                modifier = content,
                             )
+                            Screen.GameList -> GameListScreen(state, viewModel::joinTable, viewModel::changeName, viewModel::refillWallet, content)
+                            Screen.Lobby -> if (table != null) LobbyScreen(table, viewModel::leaveTable, content)
+                            Screen.Game -> if (table != null) {
+                                GameScreen(
+                                    table, state.selectedCardId, viewModel::selectCard, viewModel::passSelected,
+                                    viewModel::restart, viewModel::takeControl, viewModel::leaveTable, content,
+                                )
+                            }
                         }
                     }
                 }
