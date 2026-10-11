@@ -12,18 +12,18 @@ class GameEngine(
         require(players.map { it.seat }.sorted() == players.indices.toList()) { "Seats must be 0..${players.lastIndex}" }
 
         val deck = deckFactory.create(random)
-        val phantomHolder = random.nextInt(players.size)
+        val imposterHolder = random.nextInt(players.size)
         val hands = players.associate { player ->
             val dealt = deck.regular.subList(player.seat * config.handSize, (player.seat + 1) * config.handSize)
-            player.seat to if (player.seat == phantomHolder) dealt + deck.phantom else dealt
+            player.seat to if (player.seat == imposterHolder) dealt + deck.imposter else dealt
         }
         return GameState(
             players = players,
             hands = hands,
             lastReceivedCardBySeat = emptyMap(),
-            activeSeat = phantomHolder,
-            phantomHolder = phantomHolder,
-            phantomHolderHasMoved = false,
+            activeSeat = imposterHolder,
+            imposterHolder = imposterHolder,
+            imposterHolderHasMoved = false,
             winners = emptyList(),
             phase = Phase.Playing,
             events = emptyList(),
@@ -64,7 +64,7 @@ class GameEngine(
         val moved = state.copy(
             hands = hands,
             lastReceivedCardBySeat = state.lastReceivedCardBySeat + (recipient to card.id),
-            phantomHolderHasMoved = state.phantomHolderHasMoved || seat == state.phantomHolder,
+            imposterHolderHasMoved = state.imposterHolderHasMoved || seat == state.imposterHolder,
             winners = winners,
             events = events,
         )
@@ -74,7 +74,7 @@ class GameEngine(
 
     private fun cardError(state: GameState, seat: Int, card: Card): PassError? = when {
         isBlockedByReceived(state, seat, card) -> PassError.CardJustReceived
-        card.isPhantom && seat == state.phantomHolder && !state.phantomHolderHasMoved -> PassError.PhantomFirstMove
+        card.isImposter && seat == state.imposterHolder && !state.imposterHolderHasMoved -> PassError.ImposterFirstMove
         else -> null
     }
 

@@ -32,7 +32,7 @@ data class AvatarStyle(
 
 /** One look per bot seat; names live with the session so avatars stay stable between rounds. */
 object AvatarStyles {
-    private val all = listOf(
+    val all = listOf(
         AvatarStyle(HairStyle.Long, Outfit.Sailor, Color(0xFF1B1530), Color(0xFF8E5BFF), Color(0xFF2A6B60)),
         AvatarStyle(HairStyle.Spiky, Outfit.Gakuran, Color(0xFF1F2A44), Color(0xFFFFB02E), Color(0xFF5B2A3A)),
         AvatarStyle(HairStyle.TwinTails, Outfit.Sailor, Color(0xFF6B3A2E), Color(0xFF2FC47A), Color(0xFF1F3C5A)),

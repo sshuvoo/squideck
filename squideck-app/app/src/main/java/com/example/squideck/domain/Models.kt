@@ -2,12 +2,12 @@ package com.example.squideck.domain
 
 enum class Symbol { Star, Square, Triangle, Circle, Umbrella }
 
-/** A regular card has a [symbol]; the Phantom has none. */
+/** A regular card has a [symbol]; the Imposter has none. */
 data class Card(val id: Int, val symbol: Symbol?) {
-    val isPhantom: Boolean get() = symbol == null
+    val isImposter: Boolean get() = symbol == null
 }
 
-data class Player(val seat: Int, val name: String, val isHost: Boolean, val isBot: Boolean)
+data class Player(val seat: Int, val name: String, val isBot: Boolean)
 
 enum class Phase { Playing, Completed, Stalemate }
 
@@ -23,8 +23,8 @@ data class GameState(
     /** Seat -> id of the card that seat received most recently; that card and any card of the same symbol cannot be passed by its holder. */
     val lastReceivedCardBySeat: Map<Int, Int>,
     val activeSeat: Int,
-    val phantomHolder: Int,
-    val phantomHolderHasMoved: Boolean,
+    val imposterHolder: Int,
+    val imposterHolderHasMoved: Boolean,
     /** Seats in finishing order: index 0 = first place. */
     val winners: List<Int>,
     val phase: Phase,
@@ -39,4 +39,4 @@ sealed interface PassResult {
     data class Rejected(val reason: PassError) : PassResult
 }
 
-enum class PassError { NotPlaying, NotYourTurn, CardNotOwned, CardJustReceived, PhantomFirstMove }
+enum class PassError { NotPlaying, NotYourTurn, CardNotOwned, CardJustReceived, ImposterFirstMove }

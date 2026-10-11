@@ -17,19 +17,19 @@ import org.junit.Test
 class GameEngineTest {
     private val engine = GameEngine()
     private val strategy = FewestMatchesStrategy()
-    private val players = List(5) { Player(it, "P$it", isHost = it == 0, isBot = it != 0) }
+    private val players = List(5) { Player(it, "P$it", isBot = it != 0) }
 
     @Test
-    fun start_dealsFourEachPlusPhantomToHolder() {
+    fun start_dealsFourEachPlusImposterToHolder() {
         val state = engine.start(players, Random(1))
         val all = state.hands.values.flatten()
         assertEquals(21, all.size)
         assertEquals(21, all.map { it.id }.toSet().size)
-        assertEquals(1, all.count { it.isPhantom })
+        assertEquals(1, all.count { it.isImposter })
         state.hands.forEach { (seat, hand) ->
-            assertEquals(if (seat == state.phantomHolder) 5 else 4, hand.size)
+            assertEquals(if (seat == state.imposterHolder) 5 else 4, hand.size)
         }
-        assertEquals(state.phantomHolder, state.activeSeat)
+        assertEquals(state.imposterHolder, state.activeSeat)
         assertEquals(4, all.mapNotNull { it.symbol }.toSet().size)
     }
 
@@ -39,11 +39,11 @@ class GameEngineTest {
     }
 
     @Test
-    fun phantomCannotBePassedOnFirstMove() {
+    fun imposterCannotBePassedOnFirstMove() {
         val state = engine.start(players, Random(2))
-        val phantom = state.hands.getValue(state.activeSeat).first { it.isPhantom }
-        val result = engine.pass(state, state.activeSeat, phantom.id)
-        assertEquals(PassResult.Rejected(PassError.PhantomFirstMove), result)
+        val imposter = state.hands.getValue(state.activeSeat).first { it.isImposter }
+        val result = engine.pass(state, state.activeSeat, imposter.id)
+        assertEquals(PassResult.Rejected(PassError.ImposterFirstMove), result)
     }
 
     @Test

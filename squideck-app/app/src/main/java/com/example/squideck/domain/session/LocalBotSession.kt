@@ -14,7 +14,7 @@ import com.example.squideck.domain.ThinkTime
 import com.example.squideck.domain.TurnTimer
 import com.example.squideck.domain.economy.Economy
 import com.example.squideck.domain.economy.EconomyConfig
-import com.example.squideck.domain.economy.UsCents
+import com.example.squideck.domain.economy.Wallet
 import kotlin.random.Random
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -26,33 +26,34 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * Offline session: the human is the host in seat 0 and every other seat is a bot.
+ * Offline session: the human sits in seat 0 and every other seat is a bot that "joins over the internet"
+ * after a random delay. Nobody is host: the round starts by itself once the fifth player has joined.
  * Every turn runs on a timer; if the human lets it expire, a bot plays for them until they take control back.
  */
 class LocalBotSession(
     private val scope: CoroutineScope,
+    playerName: String,
+    private val wallet: Wallet,
     private val config: GameConfig = GameConfig(),
     private val engine: GameEngine = GameEngine(config),
     private val botStrategy: BotStrategy = FewestMatchesStrategy(),
     private val thinkTime: ThinkTime = RandomThinkTime(),
     private val random: Random = Random.Default,
-    private val botJoinDelayMs: Long = 700,
+    private val joinDelay: ThinkTime = RandomThinkTime(1_500L..3_500L),
     private val economy: EconomyConfig = EconomyConfig(),
-    private val startingBalance: UsCents = UsCents(500),
 ) : GameSession {
-    private val host = Player(seat = LOCAL_SEAT, name = "You", isHost = true, isBot = false)
-    private val _state = MutableStateFlow(lobbyState(startingBalance))
+    private val localPlayer = Player(seat = LOCAL_SEAT, name = playerName, isBot = false)
+    private val _state = MutableStateFlow(lobbyState())
     override val state: StateFlow<SessionState> = _state.asStateFlow()
 
     private var turnJob: Job? = null
     private var joinJob: Job? = null
     private var autoPlay = false
-    private var balance = startingBalance
 
-    private fun lobbyState(balance: UsCents) = SessionState(
-        players = listOf(host),
+    private fun lobbyState() = SessionState(
+        players = listOf(localPlayer),
         playerCount = config.playerCount,
-        balance = balance,
+        balance = wallet.balance.value,
         economy = economy,
     )
 
@@ -65,15 +66,14 @@ class LocalBotSession(
         joinJob?.cancel()
         joinJob = scope.launch {
             BOT_NAMES.take(config.playerCount - 1).forEachIndexed { index, name ->
-                delay(botJoinDelayMs)
-                _state.update { it.copy(players = it.players + Player(index + 1, name, isHost = false, isBot = true)) }
+                delay(joinDelay.nextMs())
+                _state.update { it.copy(players = it.players + Player(index + 1, name, isBot = true)) }
             }
+            // A beat for the last avatar reel to land, then the table starts on its own.
+            delay(AUTO_START_DELAY_MS)
+            val table = _state.value
+            if (table.game == null && table.isTableFull && wallet.canAfford(economy.entryCost)) begin(table.players)
         }
-    }
-
-    override fun start() {
-        val current = _state.value
-        if (current.canStart) begin(current.players)
     }
 
     /** Open decision in FEATURES.md: restart keeps the same players for now (local bot mode only). */
@@ -95,28 +95,15 @@ class LocalBotSession(
         if (_state.value.game?.activeSeat == LOCAL_SEAT) beginTurn()
     }
 
-    override fun leave() {
-        turnJob?.cancel()
-        autoPlay = false
-        // Leaving mid-round forfeits the entry (already debited); leaving after a round loses nothing.
-        _state.value = lobbyState(balance)
-        fillLobby()
-    }
-
-    override fun refillWallet() {
-        if (_state.value.canAffordEntry) return
-        balance = startingBalance
-        _state.update { it.copy(balance = balance) }
-    }
-
     override fun close() {
         turnJob?.cancel()
+        joinJob?.cancel()
     }
 
     private fun begin(players: List<Player>) {
         turnJob?.cancel()
         autoPlay = false
-        balance -= economy.entryCost
+        wallet.debit(economy.entryCost)
         publish(players, engine.start(players, random))
         beginTurn()
     }
@@ -124,7 +111,7 @@ class LocalBotSession(
     private fun apply(game: GameState, seat: Int, cardId: Int) {
         val result = engine.pass(game, seat, cardId) as? PassResult.Success ?: return
         val settlement = Economy.settle(result.state, economy)
-        if (settlement != null) balance += settlement.payoutFor(LOCAL_SEAT)
+        if (settlement != null) wallet.credit(settlement.payoutFor(LOCAL_SEAT))
         publish(game.players, result.state)
         beginTurn()
     }
@@ -138,7 +125,7 @@ class LocalBotSession(
             autoPlay = autoPlay,
             localSeat = LOCAL_SEAT,
             playerCount = config.playerCount,
-            balance = balance,
+            balance = wallet.balance.value,
             economy = economy,
             settlement = Economy.settle(game, economy),
         )
@@ -177,6 +164,7 @@ class LocalBotSession(
     private companion object {
         const val LOCAL_SEAT = 0
         const val MOVE_MARGIN_MS = 500L
+        const val AUTO_START_DELAY_MS = 1_500L
         val BOT_NAMES = listOf("Sakura", "Ren", "Yuki", "Haruto")
     }
 }

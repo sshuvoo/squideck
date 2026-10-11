@@ -28,7 +28,7 @@ data class SessionState(
     val settlement: Settlement? = null,
 ) {
     val canAffordEntry: Boolean get() = balance >= economy.entryCost
-    val canStart: Boolean get() = game == null && players.size == playerCount && canAffordEntry
+    val isTableFull: Boolean get() = players.size == playerCount
 }
 
 /**
@@ -37,17 +37,14 @@ data class SessionState(
  */
 interface GameSession {
     val state: StateFlow<SessionState>
-    fun start()
+
+    /** Starts a new round with the same players. Rounds begin on their own when the table fills; nobody is host. */
     fun restart()
     fun pass(cardId: Int)
 
     /** Stops auto-play so the local player moves for themselves again. */
     fun takeControl()
 
-    /** Abandons the current round (if any) and returns to the waiting lobby. */
-    fun leave()
-
-    /** Local demo wallet only: tops the balance back up so the player can keep playing. */
-    fun refillWallet()
+    /** Stops the session; the caller returns to the game list. Leaving mid-round forfeits the entry. */
     fun close()
 }

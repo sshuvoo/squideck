@@ -17,7 +17,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.squideck.ui.game.GameScreen
 import com.example.squideck.ui.game.GameViewModel
+import com.example.squideck.ui.game.GameListScreen
 import com.example.squideck.ui.game.LobbyScreen
+import com.example.squideck.ui.game.NameScreen
+import com.example.squideck.ui.game.Screen
 import com.example.squideck.ui.theme.Background
 import com.example.squideck.ui.theme.BackgroundTop
 import com.example.squideck.ui.theme.Black
@@ -41,10 +44,17 @@ class MainActivity : ComponentActivity() {
                     contentColor = OnDark,
                 ) { innerPadding ->
                     val content = Modifier.padding(innerPadding)
-                    if (state.session.game == null) {
-                        LobbyScreen(state.session, viewModel::startGame, viewModel::refillWallet, content)
-                    } else {
-                        GameScreen(state, viewModel::selectCard, viewModel::passSelected, viewModel::restart, viewModel::takeControl, viewModel::leave, content)
+                    val table = state.session
+                    when (state.screen) {
+                        Screen.Name -> NameScreen(state.playerName, viewModel::submitName, content)
+                        Screen.GameList -> GameListScreen(state, viewModel::joinTable, viewModel::changeName, viewModel::refillWallet, content)
+                        Screen.Lobby -> if (table != null) LobbyScreen(table, viewModel::leaveTable, content)
+                        Screen.Game -> if (table != null) {
+                            GameScreen(
+                                table, state.selectedCardId, viewModel::selectCard, viewModel::passSelected,
+                                viewModel::restart, viewModel::takeControl, viewModel::leaveTable, content,
+                            )
+                        }
                     }
                 }
             }

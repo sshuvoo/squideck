@@ -14,12 +14,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -41,18 +38,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import com.example.squideck.domain.GameEvent
 import com.example.squideck.domain.GameState
 import com.example.squideck.domain.Phase
 import com.example.squideck.domain.Player
 import com.example.squideck.domain.TurnTimer
 import com.example.squideck.domain.session.SessionState
+import com.example.squideck.ui.components.GameButton
+import com.example.squideck.ui.components.GameButtonSize
+import com.example.squideck.ui.components.GameButtonStyle
 import com.example.squideck.ui.theme.Black
 import com.example.squideck.ui.theme.Pink
 
 @Composable
 fun GameScreen(
-    state: GameUiState,
+    session: SessionState,
+    selectedCardId: Int?,
     onSelectCard: (Int) -> Unit,
     onPass: () -> Unit,
     onRestart: () -> Unit,
@@ -60,7 +62,6 @@ fun GameScreen(
     onLeave: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val session = state.session
     val game = session.game ?: return
     val flights = remember { CardFlightState() }
     CardFlightEffect(game, session.localSeat, flights)
@@ -78,14 +79,15 @@ fun GameScreen(
                 onSeatPositioned = flights::updateSeat,
                 modifier = Modifier.weight(1f).fillMaxWidth(),
             ) { TableCenter(session) }
-            HandSection(session, state.selectedCardId, flights, onSelectCard, onPass, onTakeControl)
+            HandSection(session, selectedCardId, flights, onSelectCard, onPass, onTakeControl)
         }
         CardFlightLayer(flights)
-        TextButton(onClick = requestLeave, modifier = Modifier.align(Alignment.TopStart).padding(start = 4.dp)) {
-            Text("\u2715  Leave", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+        GameButton(
+            "Leave", requestLeave, Modifier.align(Alignment.TopStart).padding(start = 8.dp, top = 4.dp),
+            style = GameButtonStyle.Ghost, size = GameButtonSize.Small, leading = "\u2715",
+        )
         Text(
-            "Balance ${session.balance}",
+            "Credits ${session.balance}",
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.align(Alignment.TopEnd).padding(top = 14.dp, end = 16.dp),
@@ -183,16 +185,13 @@ private fun HandSection(
         }
         val finishedPlace = game.winners.indexOf(session.localSeat).takeIf { it >= 0 }?.plus(1)
         when {
-            finishedPlace != null && game.phase == Phase.Playing -> Button(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) {
-                Text("You finished ${placeLabel(finishedPlace)} \u00b7 watching")
-            }
-            autoPlaying -> Button(onClick = onTakeControl, modifier = Modifier.fillMaxWidth()) {
-                Text("Auto-playing for you \u00b7 tap to take control")
-            }
+            finishedPlace != null && game.phase == Phase.Playing ->
+                GameButton("You finished ${placeLabel(finishedPlace)} \u00b7 watching", {}, Modifier.fillMaxWidth(), enabled = false)
+            autoPlaying ->
+                GameButton("Auto-playing \u00b7 tap to play", onTakeControl, Modifier.fillMaxWidth(), style = GameButtonStyle.Secondary)
             myTurn -> CountdownButton(session.turnTimer, selectedCardId != null, onPass)
-            else -> Button(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) {
-                Text("Waiting for ${game.players[game.activeSeat].name}\u2026")
-            }
+            else ->
+                GameButton("Waiting for ${game.players[game.activeSeat].name}\u2026", {}, Modifier.fillMaxWidth(), enabled = false)
         }
     }
 }
@@ -216,7 +215,7 @@ private fun ResultOverlay(session: SessionState, onRestart: () -> Unit, onLeave:
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         val me = seat == session.localSeat
                         Text(
-                            "${if (settlement.refunded) "\u2022" else if (seat in game.winners) placeLabel(index + 1) else "Lost"}  ${game.players[seat].name}",
+                            "${if (settlement.refunded) "\u2022" else if (seat in game.winners) placeLabel(index + 1) else "Lost"}  ${if (me) "You" else game.players[seat].name}",
                             fontWeight = if (me) FontWeight.Bold else FontWeight.Normal,
                         )
                         Text(settlement.payoutFor(seat).toString(), color = if (me) Pink else MaterialTheme.colorScheme.onSurfaceVariant)
@@ -225,15 +224,14 @@ private fun ResultOverlay(session: SessionState, onRestart: () -> Unit, onLeave:
                 val net = settlement.netFor(session.localSeat)
                 Text(
                     if (settlement.refunded) "Round cancelled \u00b7 entry refunded"
-                    else "Net ${net.toSignedString()} \u00b7 Balance ${session.balance}",
+                    else "Net ${net.toSignedString()} \u00b7 Credits ${session.balance}",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Button(onClick = onRestart, enabled = session.canAffordEntry, modifier = Modifier.fillMaxWidth()) {
-                    Text(if (session.canAffordEntry) "Play again (${session.economy.entryCost})" else "Not enough balance")
-                }
-                TextButton(onClick = onLeave, modifier = Modifier.fillMaxWidth()) {
-                    Text("Leave", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+                GameButton(
+                    if (session.canAffordEntry) "Play again \u00b7 ${session.economy.entryCost}" else "Not enough credits",
+                    onRestart, Modifier.fillMaxWidth(), enabled = session.canAffordEntry,
+                )
+                GameButton("Leave", onLeave, Modifier.fillMaxWidth(), style = GameButtonStyle.Ghost, size = GameButtonSize.Small)
             }
         }
     }
@@ -247,11 +245,11 @@ private fun placeLabel(place: Int) = when (place) {
 }
 
 private fun describe(event: GameEvent, game: GameState, localSeat: Int): String {
-    fun name(seat: Int) = game.players[seat].name.removePrefix("Player ")
+    fun name(seat: Int) = if (seat == localSeat) "You" else game.players[seat].name
     return when (event) {
         is GameEvent.Passed -> {
             val visible = event.from == localSeat || event.to == localSeat
-            val card = if (visible) " (${event.card.symbol?.name ?: "Phantom"})" else ""
+            val card = if (visible) " (${event.card.symbol?.name ?: "Imposter"})" else ""
             "${name(event.from)} \u2192 ${name(event.to)}$card"
         }
         is GameEvent.Skipped -> "${name(event.seat)} skipped"
@@ -265,40 +263,28 @@ private fun CountdownButton(timer: TurnTimer?, canPass: Boolean, onPass: () -> U
     val remaining = rememberRemainingMs(timer)
     val seconds by remember(timer) { derivedStateOf { secondsLeft(remaining.value) } }
     val duration = timer?.durationMs ?: 1L
-    val shape = RoundedCornerShape(50)
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .height(52.dp)
-            .clip(shape)
-            .clickable(enabled = canPass, onClick = onPass)
-            .drawBehind {
-                val left = remaining.value
-                drawRect(countdownColor(left).copy(alpha = 0.25f))
-                drawRect(
-                    countdownColor(left).copy(alpha = if (canPass) 1f else 0.55f),
-                    size = Size(size.width * left / duration, size.height),
-                )
-            },
-        contentAlignment = Alignment.Center,
-    ) {
-        val urgent = remaining.value <= URGENT_MS
-        Text(
-            "${if (canPass) "Pass card" else "Choose a card"} \u00b7 ${seconds}s",
-            fontWeight = FontWeight.Bold,
-            color = if (urgent && canPass) Black else MaterialTheme.colorScheme.onSurface,
-        )
-    }
+    GameButton(
+        text = "${if (canPass) "Pass card" else "Choose a card"} \u00b7 $seconds sec",
+        onClick = onPass,
+        modifier = Modifier.fillMaxWidth(),
+        enabled = canPass,
+        progress = { remaining.value.toFloat() / duration },
+        progressColor = { countdownColor(remaining.value) },
+    )
 }
 
 @Composable
 private fun LeaveDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
-        title = { Text("Leave game?", fontWeight = FontWeight.Bold) },
-        text = { Text("You will leave this round and return to the lobby.") },
-        confirmButton = { TextButton(onClick = onConfirm) { Text("Leave", color = Pink, fontWeight = FontWeight.Bold) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Stay") } },
-    )
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surface) {
+            Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text("Leave game?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
+                Text("You will leave this round and return to the game list. Your entry is not refunded.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    GameButton("Stay", onDismiss, Modifier.weight(1f), style = GameButtonStyle.Secondary)
+                    GameButton("Leave", onConfirm, Modifier.weight(1f))
+                }
+            }
+        }
+    }
 }

@@ -12,37 +12,32 @@ The game is a multiplayer card game with exactly **5 players** per game session.
 
 Each player receives a collection of cards featuring different symbols. Players take turns passing cards to the next player in the designated order. The objective is to collect four matching cards of an eligible symbol.
 
-A special card, called the **Phantom** or **Joker**, introduces an additional constraint to card passing.
+A special card, called the **Imposter** (renamed on 2026-10-12 from the original guidelines' "Phantom" / "Joker"), introduces an additional constraint to card passing. It looks like a card but matches no symbol.
 
 The game ends when three players have secured winning positions. The remaining two players are classified as losers.
 
 ### Core game entities
 
 - **Game:** A single multiplayer game session.
-- **Host:** The player responsible for starting and restarting the game.
-- **Player:** A participant in the game, including the host.
+- **Player:** A participant in the game. There is no host: every player has the same role and the game manages itself.
 - **Card:** A collectible game item belonging to a player.
 - **Card Set:** A group of cards sharing the same eligible symbol.
-- **Phantom:** A special card subject to additional passing restrictions.
+- **Imposter:** A special card subject to additional passing restrictions.
 - **Turn:** An opportunity for a player to pass one eligible card to the next player.
 - **Winner:** A player who satisfies the winning condition and secures a winning position.
 
 ## 3. Player Roles and Responsibilities
 
-### 3.1 Host
+### 3.1 No Host (changed 2026-10-12)
 
-The host is responsible for managing the game session.
+There is no host. All players are equal, and no player manages the game session.
 
-- Wait until all five players have joined before starting.
-- Start a new game when the player requirement is satisfied.
-- Restart the game when appropriate.
-- The host must not be exempt from the normal gameplay rules unless a separate rule explicitly grants an exception.
+- The game starts automatically as soon as the fifth player has joined; nobody presses a start button.
+- Restarting after a round is not a host action (see Stage 5).
 
-The host is a game-management role, not an automatic winning role.
+### 3.2 Players
 
-### 3.2 Normal Players
-
-Normal players participate in the game under the same gameplay rules as the host.
+All players participate under the same gameplay rules.
 
 - Receive their initial card distribution.
 - Take turns passing cards.
@@ -59,24 +54,24 @@ A game progresses through the following conceptual stages.
 - The game begins in a waiting state.
 - Players join the game session.
 - The game requires exactly five participating players to start.
-- The host cannot start the game before all five player slots are filled.
+- The game cannot start before all five player slots are filled, and it starts by itself the moment they are.
 
 ### Stage 2: Game Initialization
 
-Once the host starts the game:
+Once the fifth player has joined, the game starts automatically:
 
-1. Prepare the eligible card sets and the Phantom card.
+1. Prepare the eligible card sets and the Imposter card.
 2. Shuffle the complete card collection.
 3. Distribute four regular cards to each of the five players.
-4. Give the Phantom card to one randomly selected player.
+4. Give the Imposter card to one randomly selected player.
 5. Record the initial ownership of every card.
-6. Identify the player who owns the Phantom card.
+6. Identify the player who owns the Imposter card.
 7. Designate that player as the first player to take a turn.
 8. Begin the active gameplay phase.
 
-**Distribution invariant:** Every regular card must belong to exactly one player after initialization. The Phantom must also have exactly one owner.
+**Distribution invariant:** Every regular card must belong to exactly one player after initialization. The Imposter must also have exactly one owner.
 
-The stated distribution gives each player four regular cards, plus one additional Phantom card for the randomly selected recipient. Therefore, the initial distribution contains 21 cards in total if the Phantom is separate from the 20 regular cards.
+The stated distribution gives each player four regular cards, plus one additional Imposter card for the randomly selected recipient. Therefore, the initial distribution contains 21 cards in total if the Imposter is separate from the 20 regular cards.
 
 ### Stage 3: Active Gameplay
 
@@ -94,7 +89,7 @@ The precise behavior after a player wins must follow an explicitly confirmed rul
 - The game records the first-place, second-place, and third-place winners.
 - The remaining two players are classified as losers.
 - The game enters a completed state.
-- No additional gameplay turns occur unless the host restarts the game.
+- No additional gameplay turns occur until a new round is started.
 
 ### Stage 5: Restart
 
@@ -122,19 +117,19 @@ Four matching cards of any eligible symbol satisfy the stated winning condition.
 
 The game must not assume that the number of sets is four or five until this inconsistency is resolved.
 
-### 5.2 Phantom Card
+### 5.2 Imposter Card
 
-The Phantom is a special card, not an eligible matching card for the normal winning condition.
+The Imposter is a special card, not an eligible matching card for the normal winning condition.
 
-Rules governing the Phantom:
+Rules governing the Imposter:
 
-- Exactly one Phantom is assigned during a game initialization, based on the current guidelines.
-- One randomly selected player receives the Phantom.
+- Exactly one Imposter is assigned during a game initialization, based on the current guidelines.
+- One randomly selected player receives the Imposter.
 - Its initial owner starts the game.
-- The Phantom cannot be passed on that player's first move.
-- The Phantom must remain subject to the same ownership and turn-tracking rules as other cards, except where its special restrictions apply.
+- The Imposter cannot be passed on that player's first move.
+- The Imposter must remain subject to the same ownership and turn-tracking rules as other cards, except where its special restrictions apply.
 
-The Phantom's eligibility on later turns must be interpreted according to the confirmed passing rules.
+The Imposter's eligibility on later turns must be interpreted according to the confirmed passing rules.
 
 ## 6. Card Ownership and History
 
@@ -172,7 +167,7 @@ Whether a card becomes permanently unpassable after its first transfer, or only 
 
 ### 7.1 Turn Order
 
-The player who initially receives the Phantom takes the first turn.
+The player who initially receives the Imposter takes the first turn.
 
 After that, each player passes one eligible card to the next player in the established turn order.
 
@@ -186,19 +181,19 @@ A card pass is valid only when all applicable conditions are satisfied:
 2. The selected card currently belongs to the active player.
 3. The selected card is not prohibited from being passed.
 4. The active player has not previously received the selected card, according to the confirmed interpretation of the received-card rule.
-5. The player satisfies any additional restrictions associated with the Phantom or another special card.
+5. The player satisfies any additional restrictions associated with the Imposter or another special card.
 
 A player cannot pass a card they do not own.
 
-### 7.3 Phantom Restriction
+### 7.3 Imposter Restriction
 
-The initial Phantom holder starts the game by passing a card.
+The initial Imposter holder starts the game by passing a card.
 
-On the initial player's first move, the selected card must not be the Phantom.
+On the initial player's first move, the selected card must not be the Imposter.
 
-This rule prohibits passing the Phantom itself; it does not prohibit the Phantom holder from passing an eligible regular card.
+This rule prohibits passing the Imposter itself; it does not prohibit the Imposter holder from passing an eligible regular card.
 
-The rules must clarify whether the Phantom can be passed on later turns and what happens if the holder has no eligible card to pass.
+The rules must clarify whether the Imposter can be passed on later turns and what happens if the holder has no eligible card to pass.
 
 ### 7.4 Passing Results
 
@@ -229,7 +224,7 @@ Examples of valid combinations:
 
 A combination containing different symbols does not satisfy the matching requirement.
 
-The Phantom does not count as one of the four matching regular cards.
+The Imposter does not count as one of the four matching regular cards.
 
 ### 8.2 Winning Positions
 
@@ -268,14 +263,14 @@ The implementation must not invent answers to these questions.
 These invariants must remain true throughout a game.
 
 1. A game starts with exactly five players.
-2. The host cannot start the game before all five players have joined.
+2. The game cannot start before all five players have joined, and it starts automatically when the fifth joins.
 3. Each player receives four regular cards during initial distribution.
-4. One randomly selected player receives the additional Phantom card.
+4. One randomly selected player receives the additional Imposter card.
 5. Each card has exactly one current owner.
 6. Only the active player may perform the current turn's card-passing action.
 7. A player cannot pass a card they do not own.
 8. A player cannot pass a card that violates the received-card restriction.
-9. The Phantom cannot be passed on the initial Phantom holder's first move.
+9. The Imposter cannot be passed on the initial Imposter holder's first move.
 10. Four matching eligible regular cards are required to win.
 11. A player cannot claim a winning position without satisfying the winning condition.
 12. A round has no more than three winning positions.
@@ -293,7 +288,7 @@ Examples include:
 - Passing a card during another player's turn.
 - Passing a card that the active player does not own.
 - Passing a card prohibited by the received-card rule.
-- Passing the Phantom on the initial holder's first move.
+- Passing the Imposter on the initial holder's first move.
 - Claiming a win with fewer than four matching eligible cards.
 - Recording a second winning position for the same player.
 - Continuing the round after the game has completed.
@@ -309,21 +304,21 @@ The following decisions are intentionally left unresolved because the current gu
 
 - Are there four eligible symbol sets or five?
 - How many regular cards belong to each set?
-- Is the Phantom an additional twenty-first card, or is it included in the stated total of 20 cards?
-- If the Phantom is additional, are the regular cards distributed uniformly across the eligible sets?
+- Is the Imposter an additional twenty-first card, or is it included in the stated total of 20 cards?
+- If the Imposter is additional, are the regular cards distributed uniformly across the eligible sets?
 
 ### Turn progression
 
 - Does the next player follow a fixed clockwise or counterclockwise order?
 - Does the final player pass to the first player?
 - What happens if the active player has no legal card to pass?
-- Can a player pass the Phantom after the initial move?
+- Can a player pass the Imposter after the initial move?
 
 ### Card history
 
 - Does the received-card restriction apply only to the player who received a card, or does it make the card permanently unpassable?
 - If a card returns to its original owner, can that player pass it again?
-- Are initially distributed cards always eligible for passing, except for the Phantom restriction?
+- Are initially distributed cards always eligible for passing, except for the Imposter restriction?
 
 ### Winning and elimination
 
@@ -335,9 +330,9 @@ The following decisions are intentionally left unresolved because the current gu
 
 ### Session management
 
-- Can the host restart a game while a round is active?
+- Who can start a new round after one ends, now that there is no host (currently each player's "Play again" button restarts with the same players in local mode)?
 - Can players join or leave after the round starts?
-- What happens if the host disconnects?
+- What happens if a player disconnects mid-round (there is no host to hand over to)?
 - Does restarting preserve the current players or return everyone to the waiting stage?
 
 These decisions should be confirmed before implementing the affected behavior.
@@ -346,9 +341,9 @@ These decisions should be confirmed before implementing the affected behavior.
 
 Confirmed by the user and implemented in `squideck-app` (local bot mode):
 
-- **Card composition:** 4 symbol sets × 5 copies = 20 regular cards. The 4 symbols are chosen randomly per round from the 5 eligible symbols. The Phantom is an additional 21st card.
+- **Card composition:** 4 symbol sets × 5 copies = 20 regular cards. The 4 symbols are chosen randomly per round from the 5 eligible symbols. The Imposter is an additional 21st card.
 - **Turn order:** Clockwise, wrapping from the last seat to the first. If the active player has no legal card to pass, their turn is skipped.
-- **Received-card rule (revised 2026-10-12, again):** When a player receives a card, they cannot pass that card or any other card of the same symbol on their next move (e.g. after receiving a Circle, no Circle in their hand is passable). Other symbols are passable. The strict "never pass a received card" reading deadlocked ~99% of simulated rounds, so it was replaced. The Phantom is blocked on the initial holder's first move; assumption (unconfirmed): a received Phantom blocks only itself, since it has no symbol.
+- **Received-card rule (revised 2026-10-12, again):** When a player receives a card, they cannot pass that card or any other card of the same symbol on their next move (e.g. after receiving a Circle, no Circle in their hand is passable). Other symbols are passable. The strict "never pass a received card" reading deadlocked ~99% of simulated rounds, so it was replaced. The Imposter is blocked on the initial holder's first move; assumption (unconfirmed): a received Imposter blocks only itself, since it has no symbol.
 - **Winners:** A player wins at the end of their own move: after passing, the cards they still hold include four matching regular cards (e.g. holding four Circles plus a Star, with the Circles blocked, they pass the Star and win). Receiving the fourth matching card does not win by itself, and the player is not removed from play until they actually pass. A winner is recorded 1st/2nd/3rd, keeps their hand, is skipped in the turn order and no longer receives passes. Only the passer is checked after each transfer, so simultaneous wins cannot occur.
 
 - **Three winners (confirmed again 2026-10-12):** The round ends as soon as three players have won; the other two lose and receive nothing. A short-lived experiment with a four-winner round was reverted at the user's request.
@@ -356,11 +351,13 @@ Confirmed by the user and implemented in `squideck-app` (local bot mode):
 - **Turn time limit:** 15 seconds (`GameConfig.turnTimeLimitMs`). The value was not specified by the user and is an assumption.
 - **Timer UX:** Opponents show a countdown ring around their avatar plus the seconds left, switching from pink to amber in the last 5 seconds. The local player, who has no avatar, sees the countdown on the Pass button itself (draining fill + seconds). During auto-play the button reads "Auto-playing for you · tap to take control"; tapping it or any card hands control back.
 
-- **Leave button (2026-10-12):** The player can leave a game from the game screen (top-left Leave button or the system Back button). During a round this asks for confirmation; after the round ends it leaves immediately. In local bot mode leaving abandons the round and returns to the waiting lobby. What leaving mid-round means for the other players in real multiplayer (bot takeover, forfeit, round cancelled) is still an open decision.
+- **Leave button (2026-10-12):** The player can leave a game from the game screen (top-left Leave button or the system Back button). During a round this asks for confirmation; after the round ends it leaves immediately. In local bot mode leaving abandons the round and returns to the game list; the entry already paid is forfeited. What leaving mid-round means for the other players in real multiplayer (bot takeover, forfeit, round cancelled) is still an open decision.
+- **Entry flow (2026-10-12):** Because there is no server yet, the app simulates online play. The flow is: (1) a name screen asks for the player's name (2 to 14 characters, remembered on the device, so returning players skip it; "Change name" is on the game list); (2) the game list shows the single available table, the 10-cent table (5 players, entry 10 cents, prizes 20 / 15 / 10 cents); joining requires enough credits; (3) the lobby starts with only the player in it and the other four seats empty ("Searching for a player..."); (4) the other four players join gradually (each after a random 1.5-3.5 seconds, simulating players arriving over the internet), and each arrival plays a fast slot-machine style avatar reel scrolling upward that lands on the new player's avatar before their name fades in; (5) when the table is full the game starts by itself, about 1.5 seconds after the last avatar lands. The local player has no avatar and is shown with a badge of the first letter of their name. There is no host and no Start button. The local player sees themself as "You" in the game.
+  - The wallet is shared across tables and lives outside a single table session; credits reset to 500 cents on every app launch for now.
 
 - **Coin economy (2026-10-12, revised):**
-  - Money is tracked as whole US cents and shown as dollars (e.g. 10 cents = `$0.10`). For now it is play money with a local demo wallet; no real payments.
-  - Every game has a stake `S`. A player pays an entry cost equal to the stake (no extra fee on top) and must hold at least that many coins to join or start a game. Default `S` = 10 cents; the stake is one setting, any even number of cents. Starting demo balance: 500 cents.
+  - Money is tracked as whole US cents and always displayed in cents everywhere in the app (credits, entry, payouts, net result), e.g. `500¢`, never as dollars. The player's money is called **credits** in the UI, never "balance". For now it is play money with a local demo wallet; no real payments.
+  - Every game has a stake `S`. A player pays an entry cost equal to the stake (no extra fee on top) and must hold at least that many coins to join or start a game. Default `S` = 10 cents; the stake is one setting, any even number of cents. Starting demo credits: 500 cents.
   - Payouts: 1st `2 × S`, 2nd `1.5 × S`, 3rd `1 × S` (their stake back). The two players who do not win get `0`; they are not ranked against each other.
   - The platform keeps `0.5 × S` per game: 5 players pay `5 × S`, prizes total `4.5 × S`, the remainder is the maintenance fee.
   - Net result per player: 1st `+1 × S`, 2nd `+0.5 × S`, 3rd `0`, losers `-1 × S`. With `S` = 10 cents: entry 10, payouts 20 / 15 / 10 / 0 / 0, platform fee 5.
@@ -407,10 +404,10 @@ The business logic is considered complete when:
 - The card collection is defined unambiguously.
 - Cards are distributed and ownership is tracked correctly.
 - Turn order and card-passing restrictions are enforced.
-- The Phantom's behavior is fully specified.
+- The Imposter's behavior is fully specified.
 - Winning positions and losing outcomes are determined consistently.
 - Invalid actions cannot corrupt the game state.
 - Restart behavior is defined.
 - Every unresolved decision that affects core gameplay has been confirmed.
 
-**Final principle:** The game should behave deterministically according to its confirmed rules, except where randomness is explicitly required, such as card shuffling and Phantom assignment.
+**Final principle:** The game should behave deterministically according to its confirmed rules, except where randomness is explicitly required, such as card shuffling and Imposter assignment.

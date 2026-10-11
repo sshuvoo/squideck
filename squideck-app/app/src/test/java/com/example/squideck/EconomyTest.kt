@@ -12,7 +12,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class EconomyTest {
-    private val players = List(5) { Player(it, "P$it", it == 0, it != 0) }
+    private val players = List(5) { Player(it, "P$it", it != 0) }
     private val config = EconomyConfig()
 
     private fun game(phase: Phase, winners: List<Int>) =
@@ -74,10 +74,11 @@ class EconomyTest {
     }
 
     @Test
-    fun moneyFormatsAsDollars() {
-        assertEquals("$0.05", UsCents(5).toString())
-        assertEquals("$1.10", UsCents(110).toString())
-        assertEquals("-$0.11", UsCents(-11).toString())
-        assertEquals("+$0.09", UsCents(9).toSignedString())
+    fun moneyFormatsAsCents() {
+        assertEquals("5\u00a2", UsCents(5).toString())
+        assertEquals("500\u00a2", UsCents(500).toString())
+        assertEquals("-11\u00a2", UsCents(-11).toString())
+        assertEquals("+9\u00a2", UsCents(9).toSignedString())
+        assertEquals("0\u00a2", UsCents(0).toString())
     }
 }

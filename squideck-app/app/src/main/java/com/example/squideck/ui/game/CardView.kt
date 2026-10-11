@@ -58,7 +58,7 @@ fun CardView(
             SymbolIcon(card.symbol, Modifier.size(width * 0.58f))
             Text(
                 text = when {
-                    card.isPhantom -> "Phantom"
+                    card.isImposter -> "Imposter"
                     received -> "Received"
                     blocked -> "Blocked"
                     else -> card.symbol!!.name

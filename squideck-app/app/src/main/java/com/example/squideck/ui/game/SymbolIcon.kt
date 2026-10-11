@@ -17,7 +17,7 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
-/** Outline glyph for a symbol, white like the guards' masks; `null` draws the Phantom skull. */
+/** Outline glyph for a symbol, white like the guards' masks; `null` draws the Imposter mask. */
 @Composable
 fun SymbolIcon(symbol: Symbol?, modifier: Modifier = Modifier, color: Color = MaskWhite) {
     Canvas(modifier) {
@@ -71,16 +71,26 @@ fun SymbolIcon(symbol: Symbol?, modifier: Modifier = Modifier, color: Color = Ma
             }
 
             null -> {
-                drawRoundRect(
-                    color, Offset(w * 0.15f, w * 0.1f), Size(w * 0.7f, w * 0.62f),
-                    CornerRadius(w * 0.3f), style = stroke,
-                )
-                drawRoundRect(
-                    color, Offset(w * 0.3f, w * 0.68f), Size(w * 0.4f, w * 0.2f),
-                    CornerRadius(w * 0.05f), style = stroke,
-                )
-                drawCircle(color, w * 0.07f, Offset(w * 0.38f, w * 0.42f))
-                drawCircle(color, w * 0.07f, Offset(w * 0.62f, w * 0.42f))
+                // Imposter: a mask with slanted eyes and a sly zigzag grin.
+                val mask = Path().apply {
+                    moveTo(w * 0.15f, w * 0.2f)
+                    quadraticTo(w * 0.5f, w * 0.1f, w * 0.85f, w * 0.2f)
+                    lineTo(w * 0.85f, w * 0.5f)
+                    cubicTo(w * 0.85f, w * 0.75f, w * 0.65f, w * 0.9f, w * 0.5f, w * 0.9f)
+                    cubicTo(w * 0.35f, w * 0.9f, w * 0.15f, w * 0.75f, w * 0.15f, w * 0.5f)
+                    close()
+                }
+                drawPath(mask, color, style = stroke)
+                drawLine(color, Offset(w * 0.27f, w * 0.4f), Offset(w * 0.43f, w * 0.5f), strokeWidth = w * 0.08f, cap = StrokeCap.Round)
+                drawLine(color, Offset(w * 0.73f, w * 0.4f), Offset(w * 0.57f, w * 0.5f), strokeWidth = w * 0.08f, cap = StrokeCap.Round)
+                val grin = Path().apply {
+                    moveTo(w * 0.35f, w * 0.72f)
+                    lineTo(w * 0.43f, w * 0.65f)
+                    lineTo(w * 0.5f, w * 0.72f)
+                    lineTo(w * 0.57f, w * 0.65f)
+                    lineTo(w * 0.65f, w * 0.72f)
+                }
+                drawPath(grin, color, style = Stroke(w * 0.06f, cap = StrokeCap.Round, join = StrokeJoin.Round))
             }
         }
     }

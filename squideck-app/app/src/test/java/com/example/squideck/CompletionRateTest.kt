@@ -9,7 +9,7 @@ class CompletionRateTest {
     @Test
     fun botRoundsCompleteWithThreeWinners() {
         val engine = GameEngine(); val strategy = FewestMatchesStrategy()
-        val players = List(5) { Player(it, "P$it", it == 0, it != 0) }
+        val players = List(5) { Player(it, "P$it", it != 0) }
         var done = 0; val n = 500; var maxMoves = 0
         repeat(n) { seed ->
             val r = Random(seed); var s = engine.start(players, r); var moves = 0
