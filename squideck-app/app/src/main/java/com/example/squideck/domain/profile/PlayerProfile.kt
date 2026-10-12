@@ -1,9 +1,11 @@
 package com.example.squideck.domain.profile
 
-/** Where the player's chosen name is remembered between launches. */
+/** Where the player's chosen name and avatar are remembered between launches. */
 interface ProfileStore {
     fun loadName(): String?
     fun saveName(name: String)
+    fun loadAvatarId(): Int?
+    fun saveAvatarId(avatarId: Int)
 }
 
 /** Rules for the display name typed on the first screen. */

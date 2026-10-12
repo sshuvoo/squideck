@@ -34,6 +34,9 @@ class LocalBotSession(
     private val scope: CoroutineScope,
     playerName: String,
     private val wallet: Wallet,
+    playerAvatarId: Int = 0,
+    /** Faces for the four bots, in seat order; the composition root passes the ones the player didn't pick. */
+    private val botAvatarIds: List<Int> = List(4) { it + 1 },
     private val config: GameConfig = GameConfig(),
     private val engine: GameEngine = GameEngine(config),
     private val botStrategy: BotStrategy = FewestMatchesStrategy(),
@@ -42,7 +45,7 @@ class LocalBotSession(
     private val joinDelay: ThinkTime = RandomThinkTime(1_500L..3_500L),
     private val economy: EconomyConfig = EconomyConfig(),
 ) : GameSession {
-    private val localPlayer = Player(seat = LOCAL_SEAT, name = playerName, isBot = false)
+    private val localPlayer = Player(seat = LOCAL_SEAT, name = playerName, isBot = false, avatarId = playerAvatarId)
     private val _state = MutableStateFlow(lobbyState())
     override val state: StateFlow<SessionState> = _state.asStateFlow()
 
@@ -67,7 +70,7 @@ class LocalBotSession(
         joinJob = scope.launch {
             BOT_NAMES.take(config.playerCount - 1).forEachIndexed { index, name ->
                 delay(joinDelay.nextMs())
-                _state.update { it.copy(players = it.players + Player(index + 1, name, isBot = true)) }
+                _state.update { it.copy(players = it.players + Player(index + 1, name, isBot = true, avatarId = botAvatarIds[index % botAvatarIds.size])) }
             }
             // A beat for the last avatar reel to land, then the table starts on its own.
             delay(AUTO_START_DELAY_MS)

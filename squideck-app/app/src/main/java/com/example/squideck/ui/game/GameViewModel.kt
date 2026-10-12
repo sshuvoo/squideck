@@ -24,7 +24,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 
 enum class Screen { Name, GameList, Lobby, Game }
 
@@ -32,11 +31,11 @@ enum class Screen { Name, GameList, Lobby, Game }
 data class GameUiState(
     val screen: Screen,
     val playerName: String = "",
+    val avatarId: Int = AvatarStyles.DEFAULT_PLAYER_ID,
     val credits: UsCents = UsCents(0),
     val economy: EconomyConfig = EconomyConfig(),
     /** Present once the player has joined a table. */
     val session: SessionState? = null,
-    val selectedCardId: Int? = null,
 ) {
     val canAffordEntry: Boolean get() = credits >= economy.entryCost
     val hasName: Boolean get() = playerName.isNotBlank()
@@ -47,41 +46,45 @@ class GameViewModel(
     private val profileStore: ProfileStore,
     private val wallet: Wallet,
     private val economy: EconomyConfig,
-    private val sessionFactory: (CoroutineScope, String, Wallet) -> GameSession,
+    private val sessionFactory: (scope: CoroutineScope, name: String, avatarId: Int, wallet: Wallet) -> GameSession,
 ) : ViewModel() {
     private val playerName = MutableStateFlow(profileStore.loadName())
+    private val avatarId = MutableStateFlow(profileStore.loadAvatarId() ?: AvatarStyles.DEFAULT_PLAYER_ID)
     private val editingName = MutableStateFlow(false)
     private val session = MutableStateFlow<GameSession?>(null)
-    private val selectedCardId = MutableStateFlow<Int?>(null)
 
     private val sessionState: Flow<SessionState?> = session.flatMapLatest { it?.state ?: flowOf(null) }
 
     val state: StateFlow<GameUiState> = combine(
-        playerName, editingName, wallet.balance, sessionState, selectedCardId,
-    ) { name, editing, credits, table, selected ->
+        playerName, avatarId, editingName, wallet.balance, sessionState,
+    ) { name, avatar, editing, credits, table ->
         val screen = when {
             name.isNullOrBlank() || editing -> Screen.Name
             table == null -> Screen.GameList
             table.game == null -> Screen.Lobby
             else -> Screen.Game
         }
-        GameUiState(screen, name.orEmpty(), credits, economy, table, selected?.takeIf { table != null && it in table.legalCardIds })
+        GameUiState(screen, name.orEmpty(), avatar, credits, economy, table)
     }.stateIn(
         viewModelScope,
         SharingStarted.Eagerly,
         GameUiState(
             screen = if (playerName.value.isNullOrBlank()) Screen.Name else Screen.GameList,
             playerName = playerName.value.orEmpty(),
+            avatarId = avatarId.value,
             credits = wallet.balance.value,
             economy = economy,
         ),
     )
 
-    fun submitName(raw: String) {
+    /** Saves the profile chosen on the first screen: display name and avatar. */
+    fun submitProfile(raw: String, avatar: Int) {
         if (!PlayerName.isValid(raw)) return
         val name = PlayerName.clean(raw)
         profileStore.saveName(name)
+        profileStore.saveAvatarId(avatar)
         playerName.value = name
+        avatarId.value = avatar
         editingName.value = false
     }
 
@@ -98,14 +101,13 @@ class GameViewModel(
     fun joinTable() {
         val name = playerName.value ?: return
         if (session.value != null || !wallet.canAfford(economy.entryCost)) return
-        session.value = sessionFactory(viewModelScope, name, wallet)
+        session.value = sessionFactory(viewModelScope, name, avatarId.value, wallet)
     }
 
     /** Back to the game list. Leaving mid-round forfeits the entry that was already paid. */
     fun leaveTable() {
         session.value?.close()
         session.value = null
-        selectedCardId.value = null
     }
 
     fun refillWallet() {
@@ -113,7 +115,6 @@ class GameViewModel(
     }
 
     fun restart() {
-        selectedCardId.value = null
         session.value?.restart()
     }
 
@@ -122,17 +123,16 @@ class GameViewModel(
     }
 
     /** Any touch on a card while auto-play is running hands control back to the player. */
-    fun selectCard(cardId: Int) {
+    fun tapCard() {
         val current = session.value ?: return
         if (current.state.value.autoPlay) current.takeControl()
-        if (cardId !in current.state.value.legalCardIds) return
-        selectedCardId.update { if (it == cardId) null else cardId }
     }
 
-    fun passSelected() {
-        val cardId = state.value.selectedCardId ?: return
-        selectedCardId.value = null
-        session.value?.pass(cardId)
+    /** The player threw [cardId] up out of their hand. */
+    fun passCard(cardId: Int) {
+        val current = session.value ?: return
+        if (current.state.value.autoPlay) current.takeControl()
+        current.pass(cardId)
     }
 
     override fun onCleared() {
@@ -148,7 +148,9 @@ class GameViewModel(
                     profileStore = SharedPrefsProfileStore(app),
                     wallet = Wallet(),
                     economy = EconomyConfig(),
-                    sessionFactory = { scope, name, wallet -> LocalBotSession(scope, name, wallet) },
+                    sessionFactory = { scope, name, avatar, wallet ->
+                        LocalBotSession(scope, name, wallet, playerAvatarId = avatar, botAvatarIds = AvatarStyles.idsExcept(avatar))
+                    },
                 )
             }
         }

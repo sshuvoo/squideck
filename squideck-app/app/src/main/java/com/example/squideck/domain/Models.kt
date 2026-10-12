@@ -7,7 +7,8 @@ data class Card(val id: Int, val symbol: Symbol?) {
     val isImposter: Boolean get() = symbol == null
 }
 
-data class Player(val seat: Int, val name: String, val isBot: Boolean)
+/** [avatarId] picks the player's face; the server will send it so everyone sees the same avatar. */
+data class Player(val seat: Int, val name: String, val isBot: Boolean, val avatarId: Int = 0)
 
 enum class Phase { Playing, Completed, Stalemate }
 

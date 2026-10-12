@@ -1,10 +1,14 @@
 package com.example.squideck.ui.components
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.border
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -17,59 +21,94 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.squideck.ui.theme.OnDark
+import com.example.squideck.ui.theme.Crimson
+import com.example.squideck.ui.theme.DarkTeal
+import com.example.squideck.ui.theme.GameFont
+import com.example.squideck.ui.theme.Ink
 import com.example.squideck.ui.theme.Pink
+import com.example.squideck.ui.theme.Teal
+import com.example.squideck.ui.theme.White
+import com.example.squideck.ui.theme.shade
+import com.example.squideck.ui.theme.tint
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 enum class GameButtonStyle { Primary, Secondary, Ghost }
 
-enum class GameButtonSize(val height: Dp, val depth: Dp, val corner: Dp, val fontSize: Int, val horizontalPadding: Dp) {
-    Large(height = 56.dp, depth = 6.dp, corner = 16.dp, fontSize = 17, horizontalPadding = 20.dp),
-    Small(height = 40.dp, depth = 4.dp, corner = 12.dp, fontSize = 13, horizontalPadding = 14.dp),
+enum class GameButtonSize(val height: Dp, val depth: Dp, val radius: Dp, val fontSize: Int, val horizontalPadding: Dp) {
+    Large(height = 56.dp, depth = 7.dp, radius = 18.dp, fontSize = 18, horizontalPadding = 24.dp),
+    Small(height = 40.dp, depth = 5.dp, radius = 13.dp, fontSize = 13, horizontalPadding = 16.dp),
 }
 
-private class ButtonColors(
+/** One shine cycle: the sweep crosses during the first part, then the key rests. */
+private const val SHINE_CYCLE_MS = 3_200
+private const val SHINE_SHARE = 0.38f
+
+/** Colours of one key, all taken from the brand palette. */
+private class KeyLook(
     val faceTop: Color,
+    val faceMid: Color,
     val faceBottom: Color,
-    val edge: Color,
-    val border: Color,
+    val wallTop: Color,
+    val wallBottom: Color,
     val content: Color,
+    /** Colour of the label's soft drop shadow, a deep version of the key colour. */
+    val textShadow: Color?,
+    val glow: Color?,
+    val shine: Boolean,
 )
 
-private fun colorsFor(style: GameButtonStyle, enabled: Boolean): ButtonColors = when {
-    style == GameButtonStyle.Ghost -> ButtonColors(Color.Transparent, Color.Transparent, Color.Transparent, Color.Transparent, if (enabled) OnDark.copy(alpha = 0.75f) else OnDark.copy(alpha = 0.3f))
-    !enabled -> ButtonColors(Color(0xFF2B3C39), Color(0xFF223330), Color(0xFF111C1A), Color.White.copy(alpha = 0.06f), OnDark.copy(alpha = 0.45f))
-    style == GameButtonStyle.Primary -> ButtonColors(Color(0xFFFF4D85), Pink, Color(0xFF8F0F3C), Color.Transparent, Color.White)
-    else -> ButtonColors(Color(0xFF24665B), Color(0xFF184B42), Color(0xFF081F1B), Color.White.copy(alpha = 0.2f), OnDark)
+private fun lookFor(style: GameButtonStyle, enabled: Boolean): KeyLook = when {
+    !enabled -> KeyLook(
+        faceTop = Ink.tint(0.16f), faceMid = Ink.tint(0.12f), faceBottom = Ink.tint(0.08f),
+        wallTop = Ink.tint(0.08f), wallBottom = Ink.tint(0.04f),
+        content = White.copy(alpha = 0.4f), textShadow = null, glow = null, shine = false,
+    )
+    style == GameButtonStyle.Primary -> KeyLook(
+        faceTop = Pink.tint(0.2f), faceMid = Pink, faceBottom = Crimson,
+        wallTop = Crimson.shade(0.2f), wallBottom = Crimson.shade(0.32f),
+        content = White, textShadow = Crimson.shade(0.35f), glow = Pink, shine = true,
+    )
+    else -> KeyLook(
+        faceTop = Teal.tint(0.16f), faceMid = Teal, faceBottom = DarkTeal,
+        wallTop = DarkTeal.shade(0.2f), wallBottom = DarkTeal.shade(0.34f),
+        content = White, textShadow = DarkTeal.shade(0.45f), glow = null, shine = false,
+    )
 }
 
 /**
- * The game's one button: a chunky key with a darker bottom lip that presses down, glossy face,
- * bold uppercase label and a light haptic tick. Pass [progress] (0..1, read at draw time) to turn
- * it into a countdown button whose fill drains.
+ * The game's one button: a glossy 3D key. A rounded face with a convex gradient sits on an extruded base,
+ * with a bevel light along the top, a soft inner shadow at the bottom, a glass dome highlight and rounded
+ * game lettering. The main action also breathes a pink glow and gets a shine sweep with a sparkle. Pressing
+ * sinks the face into its base with a bounce and a haptic tick. Ghost buttons are text only.
  */
 @Composable
 fun GameButton(
@@ -80,81 +119,179 @@ fun GameButton(
     size: GameButtonSize = GameButtonSize.Large,
     enabled: Boolean = true,
     leading: String? = null,
-    progress: (() -> Float)? = null,
-    progressColor: () -> Color = { Pink },
 ) {
-    val colors = colorsFor(style, enabled)
     val ghost = style == GameButtonStyle.Ghost
-    val depth = if (ghost) 0.dp else size.depth
+    val look = lookFor(style, enabled)
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
-    val travel by animateDpAsState(
-        if (pressed && enabled) depth else 0.dp,
-        spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessHigh),
-        label = "buttonTravel",
-    )
     val haptic = LocalHapticFeedback.current
-    val shape = RoundedCornerShape(size.corner)
+    val sink by animateFloatAsState(
+        if (pressed && enabled) 1f else 0f,
+        spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessHigh),
+        label = "sink",
+    )
+    val motion = rememberKeyMotion(animate = enabled && look.shine)
+    val depth = if (ghost) 0.dp else size.depth
+    val outer = RoundedCornerShape(size.radius)
 
-    // Wraps its label unless the caller fixes the width (fillMaxWidth, weight, width).
     BoxWithConstraints(
         modifier
             .height(size.height + depth)
-            .alpha(if (ghost && pressed) 0.6f else 1f)
-            .drawBehind {
-                if (!ghost) {
-                    val lip = depth.toPx()
-                    drawRoundRect(
-                        colors.edge,
-                        topLeft = Offset(0f, lip),
-                        size = Size(this.size.width, this.size.height - lip),
-                        cornerRadius = CornerRadius(size.corner.toPx()),
-                    )
-                }
-            }
+            .then(
+                when {
+                    ghost -> Modifier
+                    look.glow != null -> Modifier.shadow((8f + 6f * motion.breath.value).dp, outer, clip = false, ambientColor = look.glow, spotColor = look.glow)
+                    else -> Modifier.shadow((8f - 5f * sink).dp, outer, clip = false, ambientColor = Ink, spotColor = Ink)
+                },
+            )
             .clickable(interactionSource = interaction, indication = null, enabled = enabled, role = Role.Button) {
                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 onClick()
             },
     ) {
+        // Wraps its label unless the caller fixes the width (fillMaxWidth, weight, width).
         val fixedWidth = constraints.hasBoundedWidth && constraints.minWidth == constraints.maxWidth
         Box(
             Modifier
                 .then(if (fixedWidth) Modifier.fillMaxWidth() else Modifier)
-                .height(size.height)
-                .offset(y = travel)
-                .clip(shape)
-                .drawBehind {
-                    if (!ghost) {
-                        val track = if (progress != null) lerp(colors.faceBottom, Color.Black, 0.55f) else null
-                        drawRect(if (track != null) Brush.verticalGradient(listOf(track, track)) else Brush.verticalGradient(listOf(colors.faceTop, colors.faceBottom)))
-                        if (progress != null) {
-                            val fill = progressColor().copy(alpha = if (enabled) 1f else 0.55f)
-                            drawRect(
-                                Brush.verticalGradient(listOf(lerp(fill, Color.White, 0.25f), fill)),
-                                size = Size(this.size.width * progress().coerceIn(0f, 1f), this.size.height),
-                            )
-                        }
-                        // glossy upper half
-                        drawRect(Color.White.copy(alpha = 0.10f), Offset.Zero, Size(this.size.width, this.size.height * 0.45f))
-                    }
-                }
-                .then(if (colors.border != Color.Transparent) Modifier.border(BorderStroke(1.5.dp, colors.border), shape) else Modifier)
-                .padding(horizontal = size.horizontalPadding),
-            contentAlignment = Alignment.Center,
+                .height(size.height + depth)
+                .then(if (ghost) Modifier else Modifier.drawBehind { drawKey(look, size, motion, sink, pressed && enabled) }),
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                if (leading != null) Text(leading, style = labelStyle(size, colors.content))
-                Text(text.uppercase(), style = labelStyle(size, colors.content), maxLines = 1)
+            Box(
+                Modifier
+                    .then(if (fixedWidth) Modifier.fillMaxWidth() else Modifier)
+                    .height(size.height)
+                    .offset { IntOffset(0, (depth.toPx() * sink).roundToInt()) }
+                    .padding(horizontal = size.horizontalPadding),
+                contentAlignment = Alignment.Center,
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (leading != null) KeyLabel(leading, size, look, ghost)
+                    KeyLabel(text.uppercase(), size, look, ghost)
+                }
             }
         }
     }
 }
 
-private fun labelStyle(size: GameButtonSize, color: Color) = TextStyle(
-    color = color,
-    fontSize = size.fontSize.sp,
-    fontWeight = FontWeight.Black,
-    letterSpacing = 1.sp,
-    shadow = Shadow(Color.Black.copy(alpha = 0.35f), Offset(0f, 3f), 2f),
-)
+/** Rounded game lettering with a soft drop shadow in a deep version of the key colour. */
+@Composable
+private fun KeyLabel(text: String, size: GameButtonSize, look: KeyLook, ghost: Boolean) {
+    GameText(
+        text,
+        maxLines = 1,
+        style = TextStyle(
+            fontFamily = GameFont,
+            fontSize = size.fontSize.sp,
+            fontWeight = if (ghost) FontWeight.SemiBold else FontWeight.Bold,
+            letterSpacing = 0.8.sp,
+            color = if (ghost) White.copy(alpha = 0.78f) else look.content,
+            shadow = look.textShadow?.takeIf { !ghost }?.let { Shadow(it, Offset(0f, 2.5f), 1f) },
+        ),
+    )
+}
+
+private class KeyMotion(val shine: State<Float>, val breath: State<Float>)
+
+private val Still = object : State<Float> { override val value = 0f }
+private val StillMotion = KeyMotion(Still, Still)
+
+/** Only the live main action animates; every other key stays still. */
+@Composable
+private fun rememberKeyMotion(animate: Boolean): KeyMotion {
+    if (!animate) return StillMotion
+    val transition = rememberInfiniteTransition(label = "key")
+    val shine = transition.animateFloat(0f, 1f, infiniteRepeatable(tween(SHINE_CYCLE_MS, easing = LinearEasing)), label = "shine")
+    val breath = transition.animateFloat(0f, 1f, infiniteRepeatable(tween(1_400), RepeatMode.Reverse), label = "breath")
+    return remember(shine, breath) { KeyMotion(shine, breath) }
+}
+
+private fun DrawScope.drawKey(look: KeyLook, keySize: GameButtonSize, motion: KeyMotion, sink: Float, pressed: Boolean) {
+    val w = size.width
+    val faceH = keySize.height.toPx()
+    val depth = keySize.depth.toPx()
+    val travel = depth * sink
+    val r = keySize.radius.toPx()
+
+    // Extruded base: the key's side wall, seen below the face.
+    drawRoundRect(
+        Brush.verticalGradient(listOf(look.wallTop, look.wallBottom), startY = depth, endY = depth + faceH),
+        topLeft = Offset(0f, depth), size = Size(w, faceH), cornerRadius = CornerRadius(r),
+    )
+
+    // Face: convex gradient, lighter at the top.
+    val faceTop = travel
+    val face = RoundRect(0f, faceTop, w, faceTop + faceH, CornerRadius(r))
+    val facePath = Path().apply { addRoundRect(face) }
+    drawPath(
+        facePath,
+        Brush.verticalGradient(
+            0f to look.faceTop, 0.45f to look.faceMid, 1f to look.faceBottom,
+            startY = faceTop, endY = faceTop + faceH,
+        ),
+    )
+
+    clipPath(facePath) {
+        // Glass dome highlight across the upper half.
+        val inset = 5.dp.toPx()
+        drawRoundRect(
+            Brush.verticalGradient(listOf(White.copy(alpha = if (pressed) 0.5f else 0.38f), White.copy(alpha = 0.04f)), startY = faceTop + inset, endY = faceTop + faceH * 0.5f),
+            topLeft = Offset(inset * 1.6f, faceTop + inset * 0.8f),
+            size = Size(w - inset * 3.2f, faceH * 0.44f),
+            cornerRadius = CornerRadius(r * 0.75f),
+        )
+        // Soft inner shadow along the bottom edge for roundness.
+        drawRect(
+            Brush.verticalGradient(listOf(Ink.copy(alpha = 0f), Ink.copy(alpha = 0.08f)), startY = faceTop + faceH * 0.62f, endY = faceTop + faceH),
+            topLeft = Offset(0f, faceTop + faceH * 0.62f), size = Size(w, faceH * 0.38f),
+        )
+        // Diagonal shine sweep on the main action.
+        if (look.shine) {
+            val t = motion.shine.value
+            if (t < SHINE_SHARE) {
+                val x = -w * 0.25f + (w * 1.5f) * (t / SHINE_SHARE)
+                drawRect(
+                    Brush.linearGradient(
+                        listOf(White.copy(alpha = 0f), White.copy(alpha = 0.5f), White.copy(alpha = 0f)),
+                        start = Offset(x - faceH * 0.9f, faceTop),
+                        end = Offset(x, faceTop + faceH),
+                    ),
+                )
+            }
+        }
+    }
+
+    // Bevel: a bright line along the top inner edge, fading out by the middle.
+    val bevelInset = 2.dp.toPx()
+    drawRoundRect(
+        Brush.verticalGradient(listOf(White.copy(alpha = 0.7f), White.copy(alpha = 0f)), startY = faceTop, endY = faceTop + faceH * 0.55f),
+        topLeft = Offset(bevelInset, faceTop + bevelInset),
+        size = Size(w - bevelInset * 2, faceH - bevelInset * 2),
+        cornerRadius = CornerRadius(r - bevelInset),
+        style = Stroke(1.5.dp.toPx()),
+    )
+
+    // A sparkle near the top-left corner that flashes as the shine sweeps past it.
+    if (look.shine) {
+        val t = motion.shine.value / SHINE_SHARE
+        val glint = (1f - abs(t - 0.22f) / 0.12f).coerceIn(0f, 1f)
+        if (glint > 0f) drawSparkle(Offset(r * 1.2f, faceTop + faceH * 0.3f), 7.dp.toPx() * glint, glint)
+    }
+}
+
+/** A four-point star glint. */
+private fun DrawScope.drawSparkle(center: Offset, radius: Float, alpha: Float) {
+    val thin = radius * 0.22f
+    val star = Path().apply {
+        moveTo(center.x, center.y - radius)
+        lineTo(center.x + thin, center.y - thin)
+        lineTo(center.x + radius, center.y)
+        lineTo(center.x + thin, center.y + thin)
+        lineTo(center.x, center.y + radius)
+        lineTo(center.x - thin, center.y + thin)
+        lineTo(center.x - radius, center.y)
+        lineTo(center.x - thin, center.y - thin)
+        close()
+    }
+    drawPath(star, White.copy(alpha = alpha))
+}

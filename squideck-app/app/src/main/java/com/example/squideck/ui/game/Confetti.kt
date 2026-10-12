@@ -12,9 +12,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.rotate
-import com.example.squideck.ui.theme.Amber
-import com.example.squideck.ui.theme.MaskWhite
+import com.example.squideck.ui.theme.Crimson
 import com.example.squideck.ui.theme.Pink
+import com.example.squideck.ui.theme.Teal
+import com.example.squideck.ui.theme.White
 import kotlin.math.PI
 import kotlin.math.sin
 import kotlin.random.Random
@@ -31,7 +32,7 @@ private class Piece(
     val color: Color,
 )
 
-private val ConfettiColors = listOf(Pink, MaskWhite, Amber, Color(0xFF2FD3B4))
+private val ConfettiColors = listOf(Pink, White, Teal, Crimson)
 
 /** One burst of falling paper for a winning moment; draws nothing once it has fallen. */
 @Composable

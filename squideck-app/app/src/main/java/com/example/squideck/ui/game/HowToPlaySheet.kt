@@ -15,7 +15,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -25,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.example.squideck.domain.Symbol
 import com.example.squideck.domain.economy.EconomyConfig
 import com.example.squideck.ui.components.GameButton
+import com.example.squideck.ui.components.GameText
 import com.example.squideck.ui.theme.Pink
 
 /** The rules in six steps, with the real numbers from the current table. */
@@ -37,13 +37,13 @@ fun HowToPlaySheet(economy: EconomyConfig, turnSeconds: Long, onDismiss: () -> U
             Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 24.dp).navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text("How to play", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black)
+            GameText("How to play", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Symbol.entries.forEach { SymbolIcon(it, Modifier.size(28.dp)) }
                 SymbolIcon(null, Modifier.size(28.dp), color = Pink)
             }
             Rule(1, "Collect four of a kind", "Get four cards with the same symbol. Five players, four symbols in play each round.")
-            Rule(2, "Pass one card each turn", "On your turn, pass one card to the next player clockwise. You have $turnSeconds seconds.")
+            Rule(2, "Swipe a card up to pass it", "On your turn, drag or flick one card up to pass it to the next player clockwise. You have $turnSeconds seconds.")
             Rule(3, "Fresh cards are blocked", "The card you just received, and every card with the same symbol, can't be passed on your next move.")
             Rule(4, "Win on your own move", "You win when, after your pass, you hold four matching cards. The first three players to do it win.")
             Rule(5, "Beware the Imposter", "It matches nothing. Whoever is dealt it goes first but can't pass it on that first move.")
@@ -62,11 +62,11 @@ fun HowToPlaySheet(economy: EconomyConfig, turnSeconds: Long, onDismiss: () -> U
 private fun Rule(number: Int, title: String, body: String) {
     Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
         Box(Modifier.size(28.dp).background(Pink, CircleShape), contentAlignment = Alignment.Center) {
-            Text("$number", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelLarge)
+            GameText("$number", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelLarge)
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(title, fontWeight = FontWeight.Bold)
-            Text(body, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            GameText(title, fontWeight = FontWeight.Bold)
+            GameText(body, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

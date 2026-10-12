@@ -1,18 +1,24 @@
 package com.example.squideck.ui.theme
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 
-// Palette sampled from the guard artwork: dark teal elevator walls, hot-pink jumpsuits, black masks, white symbols.
-val Black = Color(0xFF070B0A)
-val Background = Color(0xFF0A1D1A)
-val BackgroundTop = Color(0xFF0F2F2A)
-val Surface = Color(0xFF123A34)
-val SurfaceHigh = Color(0xFF1A4D45)
-val Pink = Color(0xFFE5245C)
-val PinkDark = Color(0xFFB01548)
-val OnDark = Color(0xFFF6F2EF)
-val Muted = Color(0xFF86B3A8)
+/*
+ * Squid Game brand palette: the ONLY colours this app may use.
+ *
+ * Everything on screen is one of these six, a translucent version of one (`copy(alpha = …)`), or one laid
+ * over another with [tint] / [shade]. Never write `Color(0x…)` or `Color.Red`-style constants anywhere else.
+ * Mirrored in res/values/colors.xml for the window background and launcher icon; keep the two in sync.
+ */
+val Crimson = Color(0xFFAF0B45)
+val Pink = Color(0xFFF44786)
+val White = Color(0xFFFFFFFF)
+val Teal = Color(0xFF249F9C)
+val DarkTeal = Color(0xFF037A76)
+val Ink = Color(0xFF161313)
 
-val Amber = Color(0xFFFFB02E)
-val MaskWhite = Color(0xFFFFFFFF)
-val MaskBlack = Color(0xFF000000)
+/** A lighter version of a palette colour: [White] laid over it at [amount] opacity. */
+fun Color.tint(amount: Float): Color = White.copy(alpha = amount).compositeOver(this)
+
+/** A darker version of a palette colour: [Ink] laid over it at [amount] opacity. */
+fun Color.shade(amount: Float): Color = Ink.copy(alpha = amount).compositeOver(this)

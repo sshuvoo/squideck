@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Squid Game brand palette. Mirrors ui/theme/Color.kt; these are the only colours the app may use. -->
 <resources>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <color name="squid_crimson">#FFAF0B45</color>
+    <color name="squid_pink">#FFF44786</color>
+    <color name="squid_white">#FFFFFFFF</color>
+    <color name="squid_teal">#FF249F9C</color>
+    <color name="squid_dark_teal">#FF037A76</color>
+    <color name="squid_ink">#FF161313</color>
 </resources>

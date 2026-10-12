@@ -12,7 +12,14 @@ class SharedPrefsProfileStore(context: Context) : ProfileStore {
         prefs.edit().putString(KEY_NAME, name).apply()
     }
 
+    override fun loadAvatarId(): Int? = if (prefs.contains(KEY_AVATAR)) prefs.getInt(KEY_AVATAR, 0) else null
+
+    override fun saveAvatarId(avatarId: Int) {
+        prefs.edit().putInt(KEY_AVATAR, avatarId).apply()
+    }
+
     private companion object {
         const val KEY_NAME = "name"
+        const val KEY_AVATAR = "avatar"
     }
 }

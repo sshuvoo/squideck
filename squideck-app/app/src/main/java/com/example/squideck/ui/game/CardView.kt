@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -22,9 +21,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.squideck.domain.Card
-import com.example.squideck.ui.theme.MaskBlack
-import com.example.squideck.ui.theme.MaskWhite
+import com.example.squideck.ui.components.GameText
+import com.example.squideck.ui.theme.Ink
 import com.example.squideck.ui.theme.Pink
+import com.example.squideck.ui.theme.White
 
 val CardBaseWidth = 76.dp
 val CardBaseHeight = 108.dp
@@ -59,15 +59,15 @@ fun CardView(
                 }
             },
         shape = RoundedCornerShape(14.dp),
-        color = MaskBlack,
-        border = BorderStroke(if (selected) 3.dp else 1.5.dp, if (selected) Pink else MaskWhite.copy(alpha = 0.3f)),
+        color = Ink,
+        border = BorderStroke(if (selected) 3.dp else 1.5.dp, if (selected) Pink else White.copy(alpha = 0.3f)),
     ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             SymbolIcon(card.symbol, Modifier.size(width * 0.58f))
-            Text(
+            GameText(
                 text = when {
                     card.isImposter -> "Imposter"
                     received -> "Received"
@@ -77,7 +77,7 @@ fun CardView(
                 style = MaterialTheme.typography.labelSmall,
                 fontSize = if (compact) 9.sp else MaterialTheme.typography.labelSmall.fontSize,
                 maxLines = 1,
-                color = if (received || blocked) Pink else MaskWhite.copy(alpha = 0.75f),
+                color = if (received || blocked) Pink else White.copy(alpha = 0.75f),
             )
         }
     }

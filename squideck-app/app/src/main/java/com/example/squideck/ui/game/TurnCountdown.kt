@@ -3,16 +3,16 @@ package com.example.squideck.ui.game
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.produceState
-import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.withFrameMillis
+import androidx.compose.ui.graphics.Color
 import com.example.squideck.domain.TurnTimer
-import com.example.squideck.ui.theme.Amber
 import com.example.squideck.ui.theme.Pink
+import com.example.squideck.ui.theme.Teal
 
-/** Below this the countdown switches to the warning colour. */
+/** Below this the countdown switches from calm teal to urgent pink. */
 const val URGENT_MS = 5_000L
 
-fun countdownColor(remainingMs: Long): Color = if (remainingMs <= URGENT_MS) Amber else Pink
+fun countdownColor(remainingMs: Long): Color = if (remainingMs <= URGENT_MS) Pink else Teal
 
 fun secondsLeft(remainingMs: Long): Int = ((remainingMs + 999) / 1000).toInt()
 

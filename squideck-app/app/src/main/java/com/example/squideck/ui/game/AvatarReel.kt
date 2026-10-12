@@ -2,7 +2,11 @@ package com.example.squideck.ui.game
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -15,7 +19,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import kotlin.math.roundToInt
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
@@ -26,11 +29,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import com.example.squideck.ui.theme.MaskWhite
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
+import com.example.squideck.ui.theme.White
+import kotlin.math.roundToInt
 
 
 private const val REEL_MS = 1100
@@ -65,7 +65,7 @@ fun AvatarReel(
             .size(size)
             .scale(pop.value)
             .clip(CircleShape)
-            .border(1.5.dp, MaskWhite.copy(alpha = 0.3f), CircleShape),
+            .border(1.5.dp, White.copy(alpha = 0.3f), CircleShape),
     ) {
         AnimeAvatar(frames[current], Modifier.size(size).offset { IntOffset(0, (-fraction * size.toPx()).roundToInt()) })
         if (next != current) {
@@ -85,7 +85,7 @@ fun EmptyAvatarSlot(modifier: Modifier = Modifier, size: Dp = 56.dp) {
     )
     Canvas(modifier.size(size).alpha(pulse)) {
         drawCircle(
-            Color.White.copy(alpha = 0.6f),
+            White.copy(alpha = 0.6f),
             style = Stroke(2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f))),
             radius = this.size.minDimension / 2 - 2.dp.toPx(),
         )

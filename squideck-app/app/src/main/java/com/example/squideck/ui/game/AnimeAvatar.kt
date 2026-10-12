@@ -15,11 +15,17 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.withTransform
-import androidx.compose.ui.graphics.lerp
+import com.example.squideck.ui.theme.Crimson
+import com.example.squideck.ui.theme.DarkTeal
+import com.example.squideck.ui.theme.Ink
 import com.example.squideck.ui.theme.Pink
+import com.example.squideck.ui.theme.Teal
+import com.example.squideck.ui.theme.White
+import com.example.squideck.ui.theme.shade
+import com.example.squideck.ui.theme.tint
 
-enum class HairStyle { Long, Short, Spiky, TwinTails }
-enum class Outfit { Sailor, Gakuran }
+enum class HairStyle { Long, Short, Spiky, TwinTails, Hooded }
+enum class Outfit { Sailor, Gakuran, Jumpsuit }
 
 data class AvatarStyle(
     val hairStyle: HairStyle,
@@ -27,24 +33,34 @@ data class AvatarStyle(
     val hair: Color,
     val eyes: Color,
     val background: Color,
-    val skin: Color = Color(0xFFFFE4D3),
+    // The brand palette has no skin tone, so faces are white with ink linework, manga style.
+    val skin: Color = White,
 )
 
-/** One look per bot seat; names live with the session so avatars stay stable between rounds. */
+/**
+ * Every face in the game, addressed by avatar id (the index). There is one per seat, so when the player picks
+ * theirs the bots take the other four and nobody at the table looks alike.
+ */
 object AvatarStyles {
     val all = listOf(
-        AvatarStyle(HairStyle.Long, Outfit.Sailor, Color(0xFF1B1530), Color(0xFF8E5BFF), Color(0xFF2A6B60)),
-        AvatarStyle(HairStyle.Spiky, Outfit.Gakuran, Color(0xFF1F2A44), Color(0xFFFFB02E), Color(0xFF5B2A3A)),
-        AvatarStyle(HairStyle.TwinTails, Outfit.Sailor, Color(0xFF6B3A2E), Color(0xFF2FC47A), Color(0xFF1F3C5A)),
-        AvatarStyle(HairStyle.Short, Outfit.Gakuran, Color(0xFF2B2420), Color(0xFF4FA3FF), Color(0xFF3A4A2A)),
+        AvatarStyle(HairStyle.Long, Outfit.Sailor, hair = Ink, eyes = Pink, background = Teal),
+        AvatarStyle(HairStyle.Spiky, Outfit.Gakuran, hair = Crimson, eyes = Teal, background = DarkTeal),
+        AvatarStyle(HairStyle.TwinTails, Outfit.Sailor, hair = Pink, eyes = DarkTeal, background = Ink),
+        AvatarStyle(HairStyle.Short, Outfit.Gakuran, hair = DarkTeal, eyes = Crimson, background = Crimson),
+        AvatarStyle(HairStyle.Hooded, Outfit.Jumpsuit, hair = Ink, eyes = Teal, background = DarkTeal),
     )
 
-    fun forSeat(seat: Int): AvatarStyle = all[(seat - 1).mod(all.size)]
+    /** New players start as the pink-hooded contestant. */
+    const val DEFAULT_PLAYER_ID = 4
+
+    fun byId(id: Int): AvatarStyle = all[id.mod(all.size)]
+
+    /** The faces left for the bots once the player has chosen theirs. */
+    fun idsExcept(playerId: Int): List<Int> = all.indices.filter { it != playerId.mod(all.size) }
 }
 
-private val Ink = Color(0xFF14101A)
-private val Navy = Color(0xFF1D2B53)
-private val Paper = Color(0xFFF6F4F8)
+/** Sailor uniforms are dark teal; gakuran jackets are ink, like the guards' masks. */
+private val SailorColor = DarkTeal
 private val SkinShadeAlpha = 0.18f
 
 /**
@@ -56,7 +72,7 @@ fun AnimeAvatar(style: AvatarStyle, modifier: Modifier = Modifier) {
     Canvas(modifier.clip(CircleShape)) {
         withTransform({ scale(size.width, size.height, Offset.Zero) }) {
             drawRect(
-                Brush.verticalGradient(listOf(lerp(style.background, Color.White, 0.12f), style.background, lerp(style.background, Color.Black, 0.35f)), 0f, 1f),
+                Brush.verticalGradient(listOf(style.background, style.background.shade(0.35f)), 0f, 1f),
                 size = Size(1f, 1f),
             )
             drawBackHair(style)
@@ -73,7 +89,7 @@ fun AnimeAvatar(style: AvatarStyle, modifier: Modifier = Modifier) {
 private fun path(block: Path.() -> Unit) = Path().apply(block)
 
 private fun DrawScope.drawBackHair(style: AvatarStyle) {
-    val dark = lerp(style.hair, Color.Black, 0.3f)
+    val dark = style.hair.shade(0.3f)
     when (style.hairStyle) {
         HairStyle.Long -> drawPath(
             path {
@@ -94,8 +110,19 @@ private fun DrawScope.drawBackHair(style: AvatarStyle) {
                 moveTo(0.8f, 0.3f); cubicTo(1.04f, 0.4f, 1.02f, 0.82f, 0.9f, 1.0f)
                 cubicTo(0.8f, 0.86f, 0.72f, 0.62f, 0.73f, 0.44f); close()
             }, dark)
-            drawCircle(Pink, 0.035f, Offset(0.19f, 0.33f))
-            drawCircle(Pink, 0.035f, Offset(0.81f, 0.33f))
+            drawCircle(Teal, 0.035f, Offset(0.19f, 0.33f))
+            drawCircle(Teal, 0.035f, Offset(0.81f, 0.33f))
+        }
+        // The guards' pink hood, with a darker lining behind the face.
+        HairStyle.Hooded -> {
+            drawPath(path {
+                moveTo(0.06f, 0.6f); cubicTo(0.0f, -0.18f, 1.0f, -0.18f, 0.94f, 0.6f)
+                lineTo(0.96f, 1.0f); lineTo(0.04f, 1.0f); close()
+            }, Pink)
+            drawPath(path {
+                moveTo(0.17f, 0.55f); cubicTo(0.14f, 0.1f, 0.86f, 0.1f, 0.83f, 0.55f)
+                lineTo(0.82f, 0.86f); lineTo(0.18f, 0.86f); close()
+            }, Pink.shade(0.45f))
         }
         HairStyle.Short, HairStyle.Spiky -> Unit
     }
@@ -110,24 +137,30 @@ private fun DrawScope.drawOutfit(style: AvatarStyle) {
     }
     // neck first so the collar overlaps it
     drawRect(style.skin, Offset(0.43f, 0.64f), Size(0.14f, 0.18f))
-    drawRect(Color.Black.copy(alpha = SkinShadeAlpha), Offset(0.43f, 0.64f), Size(0.14f, 0.05f))
+    drawRect(Ink.copy(alpha = SkinShadeAlpha), Offset(0.43f, 0.64f), Size(0.14f, 0.05f))
     when (style.outfit) {
         Outfit.Sailor -> {
-            drawPath(shoulders, Navy)
+            drawPath(shoulders, SailorColor)
             drawPath(path {
                 moveTo(0.3f, 0.8f); lineTo(0.5f, 0.97f); lineTo(0.7f, 0.8f)
                 lineTo(0.84f, 0.9f); lineTo(0.66f, 1.02f); lineTo(0.5f, 0.93f); lineTo(0.34f, 1.02f); lineTo(0.16f, 0.9f); close()
-            }, Navy)
-            drawPath(path { moveTo(0.3f, 0.8f); lineTo(0.5f, 0.97f); lineTo(0.7f, 0.8f) }, Paper, style = Stroke(0.018f, cap = StrokeCap.Round))
+            }, SailorColor)
+            drawPath(path { moveTo(0.3f, 0.8f); lineTo(0.5f, 0.97f); lineTo(0.7f, 0.8f) }, White, style = Stroke(0.018f, cap = StrokeCap.Round))
             drawPath(path { moveTo(0.5f, 0.95f); lineTo(0.43f, 1.02f); lineTo(0.57f, 1.02f); close() }, Pink)
             drawCircle(Pink, 0.022f, Offset(0.5f, 0.945f))
         }
         Outfit.Gakuran -> {
-            drawPath(shoulders, Color(0xFF0E0E14))
-            drawRect(Color(0xFF0E0E14), Offset(0.4f, 0.74f), Size(0.2f, 0.1f))
+            drawPath(shoulders, Ink)
+            drawRect(Ink, Offset(0.4f, 0.74f), Size(0.2f, 0.1f))
             drawPath(path { moveTo(0.43f, 0.8f); lineTo(0.5f, 0.9f); lineTo(0.57f, 0.8f) }, style.skin)
-            drawCircle(Color(0xFFD9B44A), 0.016f, Offset(0.5f, 0.94f))
-            drawCircle(Color(0xFFD9B44A), 0.016f, Offset(0.5f, 1.0f))
+            drawCircle(White, 0.016f, Offset(0.5f, 0.94f))
+            drawCircle(White, 0.016f, Offset(0.5f, 1.0f))
+        }
+        // The contestants' pink jumpsuit with its black zip.
+        Outfit.Jumpsuit -> {
+            drawPath(shoulders, Pink)
+            drawPath(path { moveTo(0.5f, 0.8f); lineTo(0.5f, 1.02f) }, Ink, style = Stroke(0.02f))
+            drawPath(path { moveTo(0.4f, 0.8f); lineTo(0.5f, 0.86f); lineTo(0.6f, 0.8f) }, Pink.shade(0.3f), style = Stroke(0.02f, cap = StrokeCap.Round))
         }
     }
 }
@@ -147,7 +180,7 @@ private fun DrawScope.drawFace(style: AvatarStyle) {
 
 private fun DrawScope.drawFrontHair(style: AvatarStyle) {
     val hair = style.hair
-    val dark = lerp(hair, Color.Black, 0.3f)
+    val dark = hair.shade(0.3f)
     // side locks framing the face
     if (style.hairStyle == HairStyle.Long || style.hairStyle == HairStyle.TwinTails) {
         drawPath(path {
@@ -180,7 +213,15 @@ private fun DrawScope.drawFrontHair(style: AvatarStyle) {
         lineTo(0.5f, 0.3f); lineTo(0.42f, 0.45f); lineTo(0.36f, 0.3f); lineTo(0.29f, 0.47f); lineTo(0.25f, 0.33f)
         close()
     }, hair)
-    drawPath(path { moveTo(0.3f, 0.28f); quadraticTo(0.5f, 0.15f, 0.7f, 0.28f) }, Color.White.copy(alpha = 0.22f), style = Stroke(0.03f, cap = StrokeCap.Round))
+    if (style.hairStyle == HairStyle.Hooded) {
+        // Hood rim over the top of the head, framing the fringe.
+        drawPath(
+            path { moveTo(0.15f, 0.62f); cubicTo(0.1f, 0.03f, 0.9f, 0.03f, 0.85f, 0.62f) },
+            Pink, style = Stroke(0.07f, cap = StrokeCap.Round),
+        )
+    } else {
+        drawPath(path { moveTo(0.3f, 0.28f); quadraticTo(0.5f, 0.15f, 0.7f, 0.28f) }, White.copy(alpha = 0.22f), style = Stroke(0.03f, cap = StrokeCap.Round))
+    }
 }
 
 private fun DrawScope.drawEye(style: AvatarStyle, cx: Float) {
@@ -193,15 +234,15 @@ private fun DrawScope.drawEye(style: AvatarStyle, cx: Float) {
         quadraticTo(cx, cy + 0.1f, cx - halfW, cy)
         close()
     }
-    drawPath(eye, Color.White)
+    drawPath(eye, White)
     clipPath(eye) {
         drawOval(
-            Brush.verticalGradient(listOf(lerp(style.eyes, Color.Black, 0.55f), style.eyes, lerp(style.eyes, Color.White, 0.45f)), cy - 0.09f, cy + 0.09f),
+            Brush.verticalGradient(listOf(Ink, style.eyes, style.eyes.tint(0.35f)), cy - 0.09f, cy + 0.09f),
             Offset(cx - 0.056f, cy - 0.095f), Size(0.112f, 0.19f),
         )
         drawOval(Ink, Offset(cx - 0.028f, cy - 0.05f), Size(0.056f, 0.11f))
-        drawCircle(Color.White, 0.026f, Offset(cx - 0.028f, cy - 0.04f))
-        drawCircle(Color.White, 0.012f, Offset(cx + 0.03f, cy + 0.045f))
+        drawCircle(White, 0.026f, Offset(cx - 0.028f, cy - 0.04f))
+        drawCircle(White, 0.012f, Offset(cx + 0.03f, cy + 0.045f))
     }
     // thick upper lash line with outward flick
     drawPath(
@@ -215,9 +256,9 @@ private fun DrawScope.drawEye(style: AvatarStyle, cx: Float) {
 }
 
 private fun DrawScope.drawNoseAndMouth() {
-    drawPath(path { moveTo(0.5f, 0.655f); lineTo(0.494f, 0.675f); lineTo(0.508f, 0.675f) }, Color(0xFFD99A83), style = Stroke(0.007f, cap = StrokeCap.Round))
+    drawPath(path { moveTo(0.5f, 0.655f); lineTo(0.494f, 0.675f); lineTo(0.508f, 0.675f) }, Crimson.copy(alpha = 0.45f), style = Stroke(0.007f, cap = StrokeCap.Round))
     drawPath(
         path { moveTo(0.46f, 0.725f); quadraticTo(0.5f, 0.755f, 0.54f, 0.725f) },
-        Color(0xFFB5524F), style = Stroke(0.011f, cap = StrokeCap.Round),
+        Crimson, style = Stroke(0.011f, cap = StrokeCap.Round),
     )
 }

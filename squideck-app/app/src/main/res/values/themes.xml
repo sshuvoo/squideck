@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.Squideck" parent="android:Theme.Material.NoActionBar" />
+    <style name="Theme.Squideck" parent="android:Theme.Material.NoActionBar">
+        <!-- Shown for the instant before Compose draws, so launch never flashes a non-brand colour. -->
+        <item name="android:windowBackground">@color/squid_ink</item>
+    </style>
 </resources>

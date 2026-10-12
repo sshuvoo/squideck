@@ -28,11 +28,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
@@ -62,14 +60,15 @@ import com.example.squideck.domain.GameState
 import com.example.squideck.domain.Phase
 import com.example.squideck.domain.Player
 import com.example.squideck.domain.Symbol
-import com.example.squideck.domain.TurnTimer
 import com.example.squideck.domain.session.SessionState
 import com.example.squideck.ui.components.GameButton
 import com.example.squideck.ui.components.GameButtonSize
 import com.example.squideck.ui.components.GameButtonStyle
+import com.example.squideck.ui.components.GameText
 import com.example.squideck.ui.components.GameTopBar
-import com.example.squideck.ui.theme.Black
+import com.example.squideck.ui.theme.Ink
 import com.example.squideck.ui.theme.Pink
+import com.example.squideck.ui.theme.White
 import kotlinx.coroutines.delay
 
 private const val WIN_BANNER_MS = 2_400L
@@ -77,11 +76,9 @@ private const val WIN_BANNER_MS = 2_400L
 @Composable
 fun GameScreen(
     session: SessionState,
-    selectedCardId: Int?,
-    onSelectCard: (Int) -> Unit,
-    onPass: () -> Unit,
+    onPassCard: (Int) -> Unit,
+    onTapCard: () -> Unit,
     onRestart: () -> Unit,
-    onTakeControl: () -> Unit,
     onLeave: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -105,7 +102,7 @@ fun GameScreen(
                 onSeatPositioned = flights::updateSeat,
                 modifier = Modifier.weight(1f).fillMaxWidth(),
             ) { TableCenter(session) }
-            HandSection(session, selectedCardId, flights, onSelectCard, onPass, onTakeControl)
+            HandSection(session, flights, onPassCard, onTapCard)
         }
         CardFlightLayer(flights)
         // The results card already announces the final places, so banners stop once the round is over.
@@ -156,7 +153,7 @@ private fun TableCenter(session: SessionState) {
     val myTurn = game.phase == Phase.Playing && game.activeSeat == session.localSeat
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         when {
-            game.phase != Phase.Playing -> Text("Round over", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
+            game.phase != Phase.Playing -> GameText("Round over", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
             myTurn -> {
                 val pulse by rememberInfiniteTransition(label = "yourTurn").animateFloat(
                     initialValue = 1f,
@@ -164,7 +161,7 @@ private fun TableCenter(session: SessionState) {
                     animationSpec = infiniteRepeatable(tween(650), RepeatMode.Reverse),
                     label = "pulse",
                 )
-                Text(
+                GameText(
                     "YOUR TURN",
                     Modifier.scale(pulse),
                     style = MaterialTheme.typography.titleLarge,
@@ -172,13 +169,13 @@ private fun TableCenter(session: SessionState) {
                     letterSpacing = 2.sp,
                     color = Pink,
                 )
-                Text(
+                GameText(
                     "Pass a card to ${game.players[session.recipientSeat ?: 0].name}",
                     style = MaterialTheme.typography.bodySmall,
                     textAlign = TextAlign.Center,
                 )
             }
-            else -> Text(
+            else -> GameText(
                 "${game.players[game.activeSeat].name} is choosing…",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
@@ -187,7 +184,7 @@ private fun TableCenter(session: SessionState) {
         }
         Column(Modifier.padding(top = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             game.events.takeLast(2).reversed().forEachIndexed { index, event ->
-                Text(
+                GameText(
                     describe(event, game, session.localSeat),
                     Modifier.alpha(if (index == 0) 1f else 0.6f),
                     style = MaterialTheme.typography.labelSmall,
@@ -216,11 +213,12 @@ private fun handHint(session: SessionState, game: GameState, hand: List<Card>): 
     return when {
         place != null -> HandHint("You finished ${placeLabel(place)}. Watch the rest of the round.")
         session.autoPlay -> HandHint("A bot is playing for you. Tap a card to take over.", emphasis = true)
-        myTurn && received?.symbol != null -> HandHint("You received a ${received.symbol.name}, so ${received.symbol.plural()} are blocked this turn.", emphasis = true)
-        myTurn && received != null -> HandHint("You received the Imposter, so it is blocked this turn.", emphasis = true)
+        myTurn && received?.symbol != null ->
+            HandHint("You received ${received.symbol.withArticle()}, so ${received.symbol.plural()} are blocked. Swipe another card up.", emphasis = true)
+        myTurn && received != null -> HandHint("You received the Imposter, so it is blocked. Swipe another card up.", emphasis = true)
         myTurn && hand.any { it.isImposter } && game.imposterHolder == seat && !game.imposterHolderHasMoved ->
-            HandHint("You start. The Imposter can't be passed on your first move.", emphasis = true)
-        myTurn -> HandHint("Pick a card to pass to ${game.players[session.recipientSeat ?: 0].name}.")
+            HandHint("You start! Swipe a card up to pass it. The Imposter can't go on your first move.", emphasis = true)
+        myTurn -> HandHint("Swipe a card up to pass it to ${game.players[session.recipientSeat ?: 0].name}.", emphasis = true)
         else -> {
             val best = hand.mapNotNull { it.symbol }.groupingBy { it }.eachCount().maxByOrNull { it.value }
             if (best != null && best.value >= 3) HandHint("${best.value} of 4 ${best.key.plural()}: one more to win. Keep them!")
@@ -231,14 +229,15 @@ private fun handHint(session: SessionState, game: GameState, hand: List<Card>): 
 
 private fun Symbol.plural() = "${name}s"
 
+/** "a Circle", "an Umbrella". */
+private fun Symbol.withArticle() = "${if (name.first().lowercaseChar() in "aeiou") "an" else "a"} $name"
+
 @Composable
 private fun HandSection(
     session: SessionState,
-    selectedCardId: Int?,
     flights: CardFlightState,
-    onSelectCard: (Int) -> Unit,
-    onPass: () -> Unit,
-    onTakeControl: () -> Unit,
+    onPassCard: (Int) -> Unit,
+    onTapCard: () -> Unit,
 ) {
     val game = session.game ?: return
     val unsorted = game.hands.getValue(session.localSeat)
@@ -247,14 +246,14 @@ private fun HandSection(
     val autoPlaying = session.autoPlay && game.phase == Phase.Playing && session.localSeat !in game.winners
     val hint = handHint(session, game, hand)
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(
+        GameText(
             "YOUR HAND",
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Black,
             letterSpacing = 1.5.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Text(
+        GameText(
             hint.text,
             style = MaterialTheme.typography.bodySmall,
             color = if (hint.emphasis) Pink else MaterialTheme.colorScheme.onSurface,
@@ -270,16 +269,20 @@ private fun HandSection(
                 },
                 horizontalArrangement = Arrangement.spacedBy(HandGap, Alignment.CenterHorizontally),
             ) {
+                val recipient = game.players[session.recipientSeat ?: 0].name
                 hand.forEach { card ->
                     key(card.id) {
-                        CardView(
+                        val passable = myTurn && card.id in session.legalCardIds
+                        ThrowableCard(
                             card = card,
-                            selected = card.id == selectedCardId,
                             received = game.lastReceivedCardBySeat[session.localSeat] == card.id,
-                            blocked = myTurn && card.id !in session.legalCardIds,
-                            enabled = (myTurn && card.id in session.legalCardIds) || autoPlaying,
-                            onClick = { onSelectCard(card.id) },
+                            blocked = myTurn && !passable,
+                            enabled = passable || autoPlaying,
+                            throwable = passable,
                             width = cardWidth,
+                            passLabel = "Pass to $recipient",
+                            onThrow = { onPassCard(card.id) },
+                            onTap = onTapCard,
                             modifier = Modifier
                                 .onGloballyPositioned {
                                     flights.updateCard(card.id, it.positionInRoot() + Offset(it.size.width / 2f, it.size.height / 2f))
@@ -289,16 +292,6 @@ private fun HandSection(
                     }
                 }
             }
-        }
-        val finishedPlace = game.winners.indexOf(session.localSeat).takeIf { it >= 0 }?.plus(1)
-        when {
-            finishedPlace != null && game.phase == Phase.Playing ->
-                GameButton("You finished ${placeLabel(finishedPlace)} · watching", {}, Modifier.fillMaxWidth(), enabled = false)
-            autoPlaying ->
-                GameButton("Auto-playing · tap to play", onTakeControl, Modifier.fillMaxWidth(), style = GameButtonStyle.Secondary)
-            myTurn -> CountdownButton(session.turnTimer, selectedCardId != null, onPass)
-            else ->
-                GameButton("Waiting for ${game.players[game.activeSeat].name}…", {}, Modifier.fillMaxWidth(), enabled = false)
         }
     }
 }
@@ -343,8 +336,8 @@ private fun WinBanner(state: WinBannerState, modifier: Modifier = Modifier) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                SymbolIcon(Symbol.Star, Modifier.size(18.dp), color = Color.White)
-                Text(state.text.uppercase(), fontWeight = FontWeight.Black, letterSpacing = 1.sp, color = Color.White)
+                SymbolIcon(Symbol.Star, Modifier.size(18.dp), color = White)
+                GameText(state.text.uppercase(), fontWeight = FontWeight.Black, letterSpacing = 1.sp, color = White)
             }
         }
     }
@@ -358,13 +351,13 @@ private fun ResultOverlay(session: SessionState, onRestart: () -> Unit, onLeave:
     val won = myPlace > 0 && !settlement.refunded
     val net = settlement.netFor(session.localSeat)
     Box(
-        Modifier.fillMaxSize().background(Black.copy(alpha = 0.82f)).clickable(enabled = false) {},
+        Modifier.fillMaxSize().background(Ink.copy(alpha = 0.82f)).clickable(enabled = false) {},
         contentAlignment = Alignment.Center,
     ) {
         if (won) Confetti(Modifier.fillMaxSize())
         Surface(Modifier.padding(24.dp), shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surface) {
             Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
+                GameText(
                     when {
                         settlement.refunded -> "ROUND CANCELLED"
                         won -> "${placeLabel(myPlace).uppercase()} PLACE"
@@ -375,7 +368,7 @@ private fun ResultOverlay(session: SessionState, onRestart: () -> Unit, onLeave:
                     letterSpacing = 2.sp,
                     color = if (won) Pink else MaterialTheme.colorScheme.onSurface,
                 )
-                Text(
+                GameText(
                     if (settlement.refunded) "No legal moves were left, so every entry was refunded."
                     else "${net.toSignedString()} this round · Credits ${session.balance}",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -394,16 +387,15 @@ private fun ResultOverlay(session: SessionState, onRestart: () -> Unit, onLeave:
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
-                            Text(
+                            GameText(
                                 if (settlement.refunded) "•" else if (seat in game.winners) placeLabel(index + 1) else "–",
                                 Modifier.width(32.dp),
                                 fontWeight = FontWeight.Black,
                                 color = if (seat in game.winners) Pink else MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                            if (player.isBot) AnimeAvatar(AvatarStyles.forSeat(seat), Modifier.size(30.dp))
-                            else InitialBadge(player.name, size = 30.dp)
-                            Text(if (me) "You" else player.name, Modifier.weight(1f), fontWeight = if (me) FontWeight.Black else FontWeight.Normal)
-                            Text(settlement.payoutFor(seat).toString(), fontWeight = FontWeight.Bold, color = if (me) Pink else MaterialTheme.colorScheme.onSurfaceVariant)
+                            AnimeAvatar(AvatarStyles.byId(player.avatarId), Modifier.size(30.dp))
+                            GameText(if (me) "You" else player.name, Modifier.weight(1f), fontWeight = if (me) FontWeight.Black else FontWeight.Normal)
+                            GameText(settlement.payoutFor(seat).toString(), fontWeight = FontWeight.Bold, color = if (me) Pink else MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -437,29 +429,13 @@ private fun describe(event: GameEvent, game: GameState, localSeat: Int): String 
     }
 }
 
-/** Pass button that doubles as the local player's turn timer: its fill drains as time runs out. */
-@Composable
-private fun CountdownButton(timer: TurnTimer?, canPass: Boolean, onPass: () -> Unit) {
-    val remaining = rememberRemainingMs(timer)
-    val seconds by remember(timer) { derivedStateOf { secondsLeft(remaining.value) } }
-    val duration = timer?.durationMs ?: 1L
-    GameButton(
-        text = "${if (canPass) "Pass card" else "Choose a card"} · $seconds sec",
-        onClick = onPass,
-        modifier = Modifier.fillMaxWidth(),
-        enabled = canPass,
-        progress = { remaining.value.toFloat() / duration },
-        progressColor = { countdownColor(remaining.value) },
-    )
-}
-
 @Composable
 private fun LeaveDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surface) {
             Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text("Leave game?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
-                Text("You will leave this round and return to the game list. Your entry is not refunded.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                GameText("Leave game?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
+                GameText("You will leave this round and return to the game list. Your entry is not refunded.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     GameButton("Stay", onDismiss, Modifier.weight(1f), style = GameButtonStyle.Secondary)
                     GameButton("Leave", onConfirm, Modifier.weight(1f))

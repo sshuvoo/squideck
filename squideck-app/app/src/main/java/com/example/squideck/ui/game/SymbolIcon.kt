@@ -1,8 +1,8 @@
 package com.example.squideck.ui.game
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.ui.Modifier
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -12,14 +12,14 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import com.example.squideck.domain.Symbol
-import com.example.squideck.ui.theme.MaskWhite
+import com.example.squideck.ui.theme.White
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
 /** Outline glyph for a symbol, white like the guards' masks; `null` draws the Imposter mask. */
 @Composable
-fun SymbolIcon(symbol: Symbol?, modifier: Modifier = Modifier, color: Color = MaskWhite) {
+fun SymbolIcon(symbol: Symbol?, modifier: Modifier = Modifier, color: Color = White) {
     Canvas(modifier) {
         val w = size.minDimension
         val stroke = Stroke(width = w * 0.09f, cap = StrokeCap.Round, join = StrokeJoin.Round)
