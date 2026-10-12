@@ -2,10 +2,14 @@ package com.example.squideck.ui.game
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -22,6 +26,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -51,6 +56,8 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -201,6 +208,9 @@ private fun TableCenter(session: SessionState) {
 private const val MIN_HAND_SLOTS = 5
 private val HandGap = 6.dp
 
+/** Delay between cards when the hand re-centres, so they slide one by one. */
+private const val SLIDE_STAGGER_MS = 70L
+
 /** Matching cards sit together; the Imposter goes last. */
 private val handOrder = compareBy<Card>({ it.isImposter }, { it.symbol?.ordinal ?: 0 }, { it.id })
 
@@ -265,16 +275,28 @@ private fun HandSection(
             val slots = maxOf(hand.size, MIN_HAND_SLOTS)
             val cardWidth = minOf(CardBaseWidth, (maxWidth - HandGap * (slots - 1)) / slots)
             val arriving = flights.arrivingCardIds(session.localSeat)
-            Row(
+            // Centred slots; when the hand changes, cards glide to their new slot one after another.
+            val rowWidth = cardWidth * hand.size + HandGap * (hand.size - 1).coerceAtLeast(0)
+            val startX = (maxWidth - rowWidth) / 2
+            Box(
                 Modifier.fillMaxWidth().height(cardWidth * (CardBaseHeight / CardBaseWidth)).onGloballyPositioned {
                     flights.updateSeat(session.localSeat, it.positionInRoot() + Offset(it.size.width / 2f, it.size.height / 2f))
                 },
-                horizontalArrangement = Arrangement.spacedBy(HandGap, Alignment.CenterHorizontally),
             ) {
                 val recipient = game.players[session.recipientSeat ?: 0].name
-                hand.forEach { card ->
+                hand.forEachIndexed { index, card ->
                     key(card.id) {
                         val passable = myTurn && card.id in session.legalCardIds
+                        val slotX = startX + (cardWidth + HandGap) * index
+                        // New arrivals start in place (they are hidden until their flight lands); the rest slide.
+                        val x = remember { Animatable(slotX, Dp.VectorConverter) }
+                        LaunchedEffect(slotX) {
+                            if (x.value != slotX) {
+                                delay(SLIDE_STAGGER_MS * index)
+                                x.animateTo(slotX, spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMediumLow))
+                            }
+                        }
+                        Box(Modifier.offset { IntOffset(x.value.roundToPx(), 0) }) {
                         ThrowableCard(
                             card = card,
                             received = game.lastReceivedCardBySeat[session.localSeat] == card.id,
@@ -291,6 +313,7 @@ private fun HandSection(
                                 }
                                 .alpha(if (card.id in arriving) 0f else 1f),
                         )
+                        }
                     }
                 }
             }
@@ -391,7 +414,10 @@ private fun ResultOverlay(session: SessionState, onRestart: () -> Unit, onLeave:
                         ) {
                             GameText(
                                 if (settlement.refunded) "•" else if (seat in game.winners) placeLabel(index + 1) else "–",
-                                Modifier.width(32.dp),
+                                // Wide enough for "1ST"/"2ND"/"3RD" in the game font, kept on one line.
+                                Modifier.width(52.dp),
+                                maxLines = 1,
+                                softWrap = false,
                                 fontWeight = FontWeight.Black,
                                 color = if (seat in game.winners) Pink else MaterialTheme.colorScheme.onSurfaceVariant,
                             )

@@ -118,8 +118,8 @@ class GameMusic(context: Context, private val track: Uri = DEFAULT_TRACK) : Defa
 
     private companion object {
         val DEFAULT_TRACK: Uri = Uri.parse("asset:///music/game_theme.mp3")
-        const val PLAY_VOLUME = 0.6f
-        const val DUCKED_VOLUME = 0.25f
+        const val PLAY_VOLUME = 1.0f
+        const val DUCKED_VOLUME = 0.45f
         const val FADE_MS = 700L
         const val FRAME_MS = 16L
     }

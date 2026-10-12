@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -25,13 +24,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.squideck.domain.GameConfig
 import com.example.squideck.domain.economy.UsCents
 import com.example.squideck.ui.components.CreditsChip
 import com.example.squideck.ui.components.GameButton
 import com.example.squideck.ui.components.GameButtonSize
 import com.example.squideck.ui.components.GameButtonStyle
 import com.example.squideck.ui.components.GameText
+import com.example.squideck.ui.components.InfoButton
 import com.example.squideck.ui.theme.Ink
 import com.example.squideck.ui.theme.Pink
 import com.example.squideck.ui.theme.Teal
@@ -71,11 +70,13 @@ fun GameListScreen(
         Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surface) {
             Box {
                 // Faint brand mark in the corner gives the card some character.
-                BrandSymbols(40.dp, Modifier.align(Alignment.TopEnd).padding(18.dp), color = Pink.copy(alpha = 0.12f))
+                BrandSymbols(40.dp, Modifier.align(Alignment.TopEnd).padding(top = 76.dp, end = 18.dp), color = Pink.copy(alpha = 0.12f))
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Box(Modifier.size(8.dp).background(Teal, CircleShape))
-                        GameText("OPEN", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                        GameText("OPEN", Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                        // The rules belong to this table's game; other games will bring their own.
+                        InfoButton({ showRules = true }, description = "How to play the ${economy.entryCost} table")
                     }
                     GameText("${economy.entryCost} table", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
                     GameText("5 players · 3 winners · entry ${economy.entryCost}", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -92,11 +93,9 @@ fun GameListScreen(
                 }
             }
         }
-        Spacer(Modifier.weight(1f))
-        GameButton("How to play", { showRules = true }, Modifier.fillMaxWidth(), style = GameButtonStyle.Secondary)
     }
     if (showRules) {
-        HowToPlaySheet(economy, GameConfig().turnTimeLimitMs / 1000, onDismiss = { showRules = false })
+        RulesSheet(squideckRules(economy), onDismiss = { showRules = false })
     }
 }
 
