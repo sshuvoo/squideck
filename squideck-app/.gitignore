@@ -1,16 +1,22 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
+# Gradle and Kotlin build state
+.gradle/
+.kotlin/
 /build
 /captures
 .externalNativeBuild
 .cxx
+
+# Machine-specific SDK path (Android Studio regenerates it)
 local.properties
-/.idea/deploymentTargetSelector.xml
+
+# Android Studio: Gradle files are the source of truth, so only the shared code style is kept
+*.iml
+/.idea/*
+!/.idea/codeStyles/
+
+# Built apps and signing keys must never be committed
+*.apk
+*.aab
+*.jks
+*.keystore
+/app/release/
