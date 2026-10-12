@@ -64,7 +64,7 @@ import kotlin.math.roundToInt
 enum class GameButtonStyle { Primary, Secondary, Ghost }
 
 enum class GameButtonSize(val height: Dp, val depth: Dp, val radius: Dp, val fontSize: Int, val horizontalPadding: Dp) {
-    Large(height = 56.dp, depth = 7.dp, radius = 18.dp, fontSize = 18, horizontalPadding = 24.dp),
+    Large(height = 48.dp, depth = 6.dp, radius = 16.dp, fontSize = 16, horizontalPadding = 22.dp),
     Small(height = 40.dp, depth = 5.dp, radius = 13.dp, fontSize = 13, horizontalPadding = 16.dp),
 }
 
