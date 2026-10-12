@@ -20,3 +20,7 @@ local.properties
 *.jks
 *.keystore
 /app/release/
+
+# Background music is copyrighted and this repo is public: the track stays on the developer's machine.
+# Drop a licensed file at app/src/main/assets/music/game_theme.mp3 to hear it; the game is silent without it.
+/app/src/main/assets/music/

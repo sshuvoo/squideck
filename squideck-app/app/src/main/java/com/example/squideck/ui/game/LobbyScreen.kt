@@ -39,11 +39,17 @@ import com.example.squideck.ui.theme.White
 
 /** The waiting room: you sit alone, then players "join from the internet" one at a time; the round starts by itself. */
 @Composable
-fun LobbyScreen(state: SessionState, onLeave: () -> Unit, modifier: Modifier = Modifier) {
+fun LobbyScreen(
+    state: SessionState,
+    musicEnabled: Boolean,
+    onToggleMusic: () -> Unit,
+    onLeave: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     BackHandler(onBack = onLeave)
     val economy = state.economy
     Column(Modifier.then(modifier).fillMaxSize().padding(start = 24.dp, end = 24.dp, bottom = 24.dp)) {
-        GameTopBar(onLeave = onLeave, credits = state.balance)
+        GameTopBar(onLeave = onLeave, credits = state.balance, musicEnabled = musicEnabled, onToggleMusic = onToggleMusic)
         Column(
             Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),

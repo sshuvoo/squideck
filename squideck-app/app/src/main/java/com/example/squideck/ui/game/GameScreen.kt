@@ -80,6 +80,8 @@ fun GameScreen(
     onTapCard: () -> Unit,
     onRestart: () -> Unit,
     onLeave: () -> Unit,
+    musicEnabled: Boolean,
+    onToggleMusic: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val game = session.game ?: return
@@ -95,7 +97,7 @@ fun GameScreen(
     BackHandler(onBack = requestLeave)
     Box(modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            GameTopBar(onLeave = requestLeave, credits = session.balance)
+            GameTopBar(onLeave = requestLeave, credits = session.balance, musicEnabled = musicEnabled, onToggleMusic = onToggleMusic)
             PlayerTable(
                 seats = game.players.map { seatInfo(it, game, session) },
                 localSeat = session.localSeat,

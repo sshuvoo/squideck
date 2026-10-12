@@ -1,5 +1,6 @@
 package com.example.squideck
 
+import android.media.AudioManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -15,6 +16,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -22,6 +24,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.squideck.ui.game.GameListScreen
+import com.example.squideck.audio.GameMusic
 import com.example.squideck.ui.game.GameScreen
 import com.example.squideck.ui.game.GameViewModel
 import com.example.squideck.ui.game.LobbyScreen
@@ -33,8 +36,11 @@ import com.example.squideck.ui.theme.SquideckTheme
 import com.example.squideck.ui.theme.White
 
 class MainActivity : ComponentActivity() {
+    private lateinit var music: GameMusic
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        music = GameMusic(this).also { lifecycle.addObserver(it) }
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
@@ -43,6 +49,9 @@ class MainActivity : ComponentActivity() {
             SquideckTheme {
                 val viewModel: GameViewModel = viewModel(factory = GameViewModel.Factory)
                 val state by viewModel.state.collectAsState()
+                LaunchedEffect(state.musicPlaying, state.roundOver) {
+                    music.update(play = state.musicPlaying, duck = state.roundOver)
+                }
                 Scaffold(
                     // Ink base with a dark-teal glow from the top, like the guards' elevator.
                     modifier = Modifier.fillMaxSize().background(Ink).background(Brush.verticalGradient(listOf(DarkTeal.copy(alpha = 0.45f), DarkTeal.copy(alpha = 0f)))),
@@ -66,11 +75,13 @@ class MainActivity : ComponentActivity() {
                                 modifier = content,
                             )
                             Screen.GameList -> GameListScreen(state, viewModel::joinTable, viewModel::changeName, viewModel::refillWallet, content)
-                            Screen.Lobby -> if (table != null) LobbyScreen(table, viewModel::leaveTable, content)
+                            Screen.Lobby -> if (table != null) {
+                                LobbyScreen(table, state.musicEnabled, viewModel::toggleMusic, viewModel::leaveTable, content)
+                            }
                             Screen.Game -> if (table != null) {
                                 GameScreen(
-                                    table, viewModel::passCard, viewModel::tapCard,
-                                    viewModel::restart, viewModel::leaveTable, content,
+                                    table, viewModel::passCard, viewModel::tapCard, viewModel::restart, viewModel::leaveTable,
+                                    state.musicEnabled, viewModel::toggleMusic, content,
                                 )
                             }
                         }
@@ -78,5 +89,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Volume keys change the game's media volume even between songs (Android guidance for games).
+        volumeControlStream = AudioManager.STREAM_MUSIC
     }
 }

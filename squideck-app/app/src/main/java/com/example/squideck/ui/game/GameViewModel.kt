@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.squideck.data.SharedPrefsProfileStore
+import com.example.squideck.data.SharedPrefsSettingsStore
+import com.example.squideck.domain.Phase
 import com.example.squideck.domain.economy.EconomyConfig
 import com.example.squideck.domain.economy.UsCents
 import com.example.squideck.domain.economy.Wallet
@@ -14,6 +16,7 @@ import com.example.squideck.domain.profile.ProfileStore
 import com.example.squideck.domain.session.GameSession
 import com.example.squideck.domain.session.LocalBotSession
 import com.example.squideck.domain.session.SessionState
+import com.example.squideck.domain.settings.SettingsStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -36,7 +39,11 @@ data class GameUiState(
     val economy: EconomyConfig = EconomyConfig(),
     /** Present once the player has joined a table. */
     val session: SessionState? = null,
+    val musicEnabled: Boolean = true,
 ) {
+    /** Music plays while a round is on screen, quieter under the results card. */
+    val musicPlaying: Boolean get() = musicEnabled && screen == Screen.Game
+    val roundOver: Boolean get() = session?.game?.let { it.phase != Phase.Playing } ?: false
     val canAffordEntry: Boolean get() = credits >= economy.entryCost
     val hasName: Boolean get() = playerName.isNotBlank()
 }
@@ -44,6 +51,7 @@ data class GameUiState(
 @OptIn(ExperimentalCoroutinesApi::class)
 class GameViewModel(
     private val profileStore: ProfileStore,
+    private val settingsStore: SettingsStore,
     private val wallet: Wallet,
     private val economy: EconomyConfig,
     private val sessionFactory: (scope: CoroutineScope, name: String, avatarId: Int, wallet: Wallet) -> GameSession,
@@ -51,20 +59,23 @@ class GameViewModel(
     private val playerName = MutableStateFlow(profileStore.loadName())
     private val avatarId = MutableStateFlow(profileStore.loadAvatarId() ?: AvatarStyles.DEFAULT_PLAYER_ID)
     private val editingName = MutableStateFlow(false)
+    private val musicEnabled = MutableStateFlow(settingsStore.loadMusicEnabled())
     private val session = MutableStateFlow<GameSession?>(null)
 
     private val sessionState: Flow<SessionState?> = session.flatMapLatest { it?.state ?: flowOf(null) }
 
+    private val profile = combine(playerName, avatarId, musicEnabled) { name, avatar, music -> Triple(name, avatar, music) }
+
     val state: StateFlow<GameUiState> = combine(
-        playerName, avatarId, editingName, wallet.balance, sessionState,
-    ) { name, avatar, editing, credits, table ->
+        profile, editingName, wallet.balance, sessionState,
+    ) { (name, avatar, music), editing, credits, table ->
         val screen = when {
             name.isNullOrBlank() || editing -> Screen.Name
             table == null -> Screen.GameList
             table.game == null -> Screen.Lobby
             else -> Screen.Game
         }
-        GameUiState(screen, name.orEmpty(), avatar, credits, economy, table)
+        GameUiState(screen, name.orEmpty(), avatar, credits, economy, table, music)
     }.stateIn(
         viewModelScope,
         SharingStarted.Eagerly,
@@ -74,8 +85,15 @@ class GameViewModel(
             avatarId = avatarId.value,
             credits = wallet.balance.value,
             economy = economy,
+            musicEnabled = musicEnabled.value,
         ),
     )
+
+    fun toggleMusic() {
+        val enabled = !musicEnabled.value
+        settingsStore.saveMusicEnabled(enabled)
+        musicEnabled.value = enabled
+    }
 
     /** Saves the profile chosen on the first screen: display name and avatar. */
     fun submitProfile(raw: String, avatar: Int) {
@@ -146,6 +164,7 @@ class GameViewModel(
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]!!
                 GameViewModel(
                     profileStore = SharedPrefsProfileStore(app),
+                    settingsStore = SharedPrefsSettingsStore(app),
                     wallet = Wallet(),
                     economy = EconomyConfig(),
                     sessionFactory = { scope, name, avatar, wallet ->
