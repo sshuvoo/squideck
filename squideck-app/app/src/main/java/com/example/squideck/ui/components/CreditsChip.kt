@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -28,7 +29,9 @@ fun CreditsChip(credits: UsCents, modifier: Modifier = Modifier) {
             .clip(shape)
             .background(Ink.copy(alpha = 0.35f))
             .border(1.dp, White.copy(alpha = 0.12f), shape)
-            .padding(horizontal = 14.dp, vertical = 7.dp),
+            // Same height as the buttons beside it (music toggle, info), so the top bar lines up.
+            .height(GameButtonHeight)
+            .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {

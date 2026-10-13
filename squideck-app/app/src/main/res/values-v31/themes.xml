@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Android 12+ system launch splash: brand icon on Ink, handing straight over to the animated intro. -->
+    <style name="Theme.Squideck" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/squid_ink</item>
+        <item name="android:windowSplashScreenBackground">@color/squid_ink</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/squid_ink</item>
+    </style>
+</resources>

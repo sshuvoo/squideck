@@ -19,17 +19,21 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.squideck.ui.game.GameListScreen
 import com.example.squideck.audio.GameMusic
+import com.example.squideck.ui.game.GameListScreen
 import com.example.squideck.ui.game.GameScreen
 import com.example.squideck.ui.game.GameViewModel
 import com.example.squideck.ui.game.LobbyScreen
 import com.example.squideck.ui.game.NameScreen
 import com.example.squideck.ui.game.Screen
+import com.example.squideck.ui.intro.IntroScreen
 import com.example.squideck.ui.theme.DarkTeal
 import com.example.squideck.ui.theme.Ink
 import com.example.squideck.ui.theme.SquideckTheme
@@ -49,6 +53,12 @@ class MainActivity : ComponentActivity() {
             SquideckTheme {
                 val viewModel: GameViewModel = viewModel(factory = GameViewModel.Factory)
                 val state by viewModel.state.collectAsState()
+                // The intro plays once per launch; rememberSaveable keeps it from replaying on rotation.
+                var showIntro by rememberSaveable { mutableStateOf(true) }
+                if (showIntro) {
+                    IntroScreen(onFinished = { showIntro = false })
+                    return@SquideckTheme
+                }
                 LaunchedEffect(state.musicPlaying, state.roundOver) {
                     music.update(play = state.musicPlaying, duck = state.roundOver)
                 }
@@ -74,7 +84,12 @@ class MainActivity : ComponentActivity() {
                                 onBack = if (state.hasName) viewModel::cancelNameChange else null,
                                 modifier = content,
                             )
-                            Screen.GameList -> GameListScreen(state, viewModel::joinTable, viewModel::changeName, viewModel::refillWallet, content)
+                            Screen.GameList -> GameListScreen(
+                                state, viewModel::joinTable, viewModel::changeName, viewModel::refillWallet,
+                                // A clean exit: finish the activity, which also releases the music player.
+                                onExit = { finish() },
+                                modifier = content,
+                            )
                             Screen.Lobby -> if (table != null) {
                                 LobbyScreen(table, state.musicEnabled, viewModel::toggleMusic, viewModel::leaveTable, content)
                             }

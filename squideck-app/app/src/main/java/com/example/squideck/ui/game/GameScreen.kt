@@ -60,14 +60,15 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import com.example.squideck.domain.Card
+import com.example.squideck.domain.GameConfig
 import com.example.squideck.domain.GameEvent
 import com.example.squideck.domain.GameState
 import com.example.squideck.domain.Phase
 import com.example.squideck.domain.Player
 import com.example.squideck.domain.Symbol
 import com.example.squideck.domain.session.SessionState
+import com.example.squideck.ui.components.ConfirmDialog
 import com.example.squideck.ui.components.GameButton
 import com.example.squideck.ui.components.GameButtonSize
 import com.example.squideck.ui.components.GameButtonStyle
@@ -95,7 +96,7 @@ fun GameScreen(
     val flights = remember { CardFlightState() }
     CardFlightEffect(game, session.localSeat, flights)
     KeepScreenOn()
-    YourTurnHaptic(game.phase == Phase.Playing && game.activeSeat == session.localSeat)
+    YourTurnHaptic(game.phase == Phase.Playing && !session.isCountingDown && game.activeSeat == session.localSeat)
     val banner = rememberWinBanner(game, session.localSeat)
     var confirmLeave by rememberSaveable { mutableStateOf(false) }
     val roundOver = game.phase != Phase.Playing
@@ -116,11 +117,19 @@ fun GameScreen(
         CardFlightLayer(flights)
         // The results card already announces the final places, so banners stop once the round is over.
         if (!roundOver) WinBanner(banner, Modifier.align(Alignment.TopCenter).padding(top = 64.dp))
+        session.countdown?.let { StartCountdown(it, flashMs = GameConfig().startFlashMs) }
         if (roundOver) {
             ResultOverlay(session, onRestart, onLeave)
         }
         if (confirmLeave) {
-            LeaveDialog(onConfirm = { confirmLeave = false; onLeave() }, onDismiss = { confirmLeave = false })
+            ConfirmDialog(
+                title = "Leave game?",
+                message = "You will leave this round and return to the game list. Your entry is not refunded.",
+                confirmLabel = "Leave",
+                dismissLabel = "Stay",
+                onConfirm = { confirmLeave = false; onLeave() },
+                onDismiss = { confirmLeave = false },
+            )
         }
     }
 }
@@ -145,7 +154,7 @@ private fun YourTurnHaptic(myTurn: Boolean) {
 
 private fun seatInfo(player: Player, game: GameState, session: SessionState): SeatInfo {
     val place = game.winners.indexOf(player.seat).takeIf { it >= 0 }?.plus(1)
-    val myTurn = game.phase == Phase.Playing && game.activeSeat == session.localSeat
+    val myTurn = game.phase == Phase.Playing && !session.isCountingDown && game.activeSeat == session.localSeat
     return SeatInfo(
         player = player,
         subtitle = if (place != null) placeLabel(place) else "${game.hands.getValue(player.seat).size} cards",
@@ -159,9 +168,10 @@ private fun seatInfo(player: Player, game: GameState, session: SessionState): Se
 @Composable
 private fun TableCenter(session: SessionState) {
     val game = session.game ?: return
-    val myTurn = game.phase == Phase.Playing && game.activeSeat == session.localSeat
+    val myTurn = game.phase == Phase.Playing && !session.isCountingDown && game.activeSeat == session.localSeat
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         when {
+            session.isCountingDown -> GameText("Get ready", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
             game.phase != Phase.Playing -> GameText("Round over", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
             myTurn -> {
                 val pulse by rememberInfiniteTransition(label = "yourTurn").animateFloat(
@@ -220,7 +230,7 @@ private data class HandHint(val text: String, val emphasis: Boolean = false)
 private fun handHint(session: SessionState, game: GameState, hand: List<Card>): HandHint {
     val seat = session.localSeat
     val place = game.winners.indexOf(seat).takeIf { it >= 0 }?.plus(1)
-    val myTurn = game.phase == Phase.Playing && game.activeSeat == seat
+    val myTurn = game.phase == Phase.Playing && !session.isCountingDown && game.activeSeat == seat
     val received = hand.firstOrNull { it.id == game.lastReceivedCardBySeat[seat] }
     return when {
         place != null -> HandHint("You finished ${placeLabel(place)}. Watch the rest of the round.")
@@ -254,7 +264,7 @@ private fun HandSection(
     val game = session.game ?: return
     val unsorted = game.hands.getValue(session.localSeat)
     val hand = remember(unsorted) { unsorted.sortedWith(handOrder) }
-    val myTurn = game.phase == Phase.Playing && game.activeSeat == session.localSeat
+    val myTurn = game.phase == Phase.Playing && !session.isCountingDown && game.activeSeat == session.localSeat
     val autoPlaying = session.autoPlay && game.phase == Phase.Playing && session.localSeat !in game.winners
     val hint = handHint(session, game, hand)
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -454,21 +464,5 @@ private fun describe(event: GameEvent, game: GameState, localSeat: Int): String 
         }
         is GameEvent.Skipped -> "${name(event.seat)} skipped"
         is GameEvent.Won -> "${name(event.seat)} finished ${placeLabel(event.place)}"
-    }
-}
-
-@Composable
-private fun LeaveDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surface) {
-            Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                GameText("Leave game?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
-                GameText("You will leave this round and return to the game list. Your entry is not refunded.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    GameButton("Stay", onDismiss, Modifier.weight(1f), style = GameButtonStyle.Secondary)
-                    GameButton("Leave", onConfirm, Modifier.weight(1f))
-                }
-            }
-        }
     }
 }

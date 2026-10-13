@@ -17,25 +17,23 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.example.squideck.ui.theme.Ink
-import com.example.squideck.ui.theme.Teal
 import com.example.squideck.ui.theme.White
 
-/** Round "i" button that opens a game's rules; matches the music toggle and credits chip. */
+/** Round cross button for closing sheets and panels quickly; matches the other round icon buttons. */
 @Composable
-fun InfoButton(onClick: () -> Unit, description: String, modifier: Modifier = Modifier) {
+fun CloseButton(onClick: () -> Unit, modifier: Modifier = Modifier, description: String = "Close") {
     Canvas(
         modifier
-            .size(40.dp)
+            .size(GameButtonHeight)
             .clip(CircleShape)
             .background(Ink.copy(alpha = 0.35f))
-            .border(1.5.dp, Teal.copy(alpha = 0.7f), CircleShape)
+            .border(1.dp, White.copy(alpha = 0.12f), CircleShape)
             .clickable(role = Role.Button, onClick = onClick)
             .semantics { contentDescription = description }
-            .padding(12.dp),
+            .padding(13.dp),
     ) {
-        val w = size.width
-        val h = size.height
-        drawCircle(White, radius = w * 0.11f, center = Offset(w / 2, h * 0.14f))
-        drawLine(White, Offset(w / 2, h * 0.42f), Offset(w / 2, h * 0.9f), strokeWidth = w * 0.2f, cap = StrokeCap.Round)
+        val stroke = size.width * 0.16f
+        drawLine(White, Offset.Zero, Offset(size.width, size.height), stroke, StrokeCap.Round)
+        drawLine(White, Offset(size.width, 0f), Offset(0f, size.height), stroke, StrokeCap.Round)
     }
 }

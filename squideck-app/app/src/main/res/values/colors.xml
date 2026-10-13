@@ -7,4 +7,6 @@
     <color name="squid_teal">#FF249F9C</color>
     <color name="squid_dark_teal">#FF037A76</color>
     <color name="squid_ink">#FF161313</color>
+    <!-- Invitation-card kraft paper, used only for the game cards. -->
+    <color name="squid_kraft">#FFD2AE84</color>
 </resources>

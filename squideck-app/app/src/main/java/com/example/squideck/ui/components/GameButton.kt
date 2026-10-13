@@ -63,9 +63,20 @@ import kotlin.math.roundToInt
 
 enum class GameButtonStyle { Primary, Secondary, Ghost }
 
-enum class GameButtonSize(val height: Dp, val depth: Dp, val radius: Dp, val fontSize: Int, val horizontalPadding: Dp) {
-    Large(height = 48.dp, depth = 6.dp, radius = 16.dp, fontSize = 16, horizontalPadding = 22.dp),
-    Small(height = 40.dp, depth = 5.dp, radius = 13.dp, fontSize = 13, horizontalPadding = 16.dp),
+/** Face height of every key; with its 3D base every button (and icon button) stands [GameButtonHeight] tall. */
+private val KeyFaceHeight = 36.dp
+private val KeyDepth = 4.dp
+val GameButtonHeight = KeyFaceHeight + KeyDepth
+
+/** Sizes share one height so buttons line up anywhere; they differ only in lettering and padding. */
+enum class GameButtonSize(val fontSize: Int, val horizontalPadding: Dp) {
+    Large(fontSize = 14, horizontalPadding = 20.dp),
+    Small(fontSize = 12, horizontalPadding = 14.dp),
+    ;
+
+    val height: Dp get() = KeyFaceHeight
+    val depth: Dp get() = KeyDepth
+    val radius: Dp get() = 12.dp
 }
 
 /** One shine cycle: the sweep crosses during the first part, then the key rests. */
@@ -131,7 +142,7 @@ fun GameButton(
         label = "sink",
     )
     val motion = rememberKeyMotion(animate = enabled && look.shine)
-    val depth = if (ghost) 0.dp else size.depth
+    val depth = size.depth
     val outer = RoundedCornerShape(size.radius)
 
     BoxWithConstraints(
@@ -160,7 +171,8 @@ fun GameButton(
             Box(
                 Modifier
                     .then(if (fixedWidth) Modifier.fillMaxWidth() else Modifier)
-                    .height(size.height)
+                    // Text-only buttons have no base, so their label centres on the full button height.
+                    .height(if (ghost) size.height + depth else size.height)
                     .offset { IntOffset(0, (depth.toPx() * sink).roundToInt()) }
                     .padding(horizontal = size.horizontalPadding),
                 contentAlignment = Alignment.Center,

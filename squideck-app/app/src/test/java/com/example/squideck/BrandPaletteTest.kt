@@ -13,10 +13,10 @@ class BrandPaletteTest {
     private val main = File("src/main")
     private val paletteFile = File(main, "java/com/example/squideck/ui/theme/Color.kt")
     private val colorsXml = File(main, "res/values/colors.xml")
-    private val brand = setOf("AF0B45", "F44786", "FFFFFF", "249F9C", "037A76", "161313")
+    private val brand = setOf("AF0B45", "F44786", "FFFFFF", "249F9C", "037A76", "161313", "D2AE84")
 
     @Test
-    fun paletteIsExactlyTheSixBrandColours() {
+    fun paletteIsExactlyTheBrandColours() {
         val inKotlin = Regex("Color\\(0xFF([0-9A-Fa-f]{6})\\)").findAll(paletteFile.readText()).map { it.groupValues[1].uppercase() }.toSet()
         val inXml = Regex("#FF([0-9A-Fa-f]{6})").findAll(colorsXml.readText()).map { it.groupValues[1].uppercase() }.toSet()
         assertEquals(brand, inKotlin)

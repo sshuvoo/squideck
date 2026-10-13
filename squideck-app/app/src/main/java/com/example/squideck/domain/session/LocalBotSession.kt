@@ -86,6 +86,7 @@ class LocalBotSession(
     }
 
     override fun pass(cardId: Int) {
+        if (_state.value.isCountingDown) return
         val game = _state.value.game ?: return
         apply(game, LOCAL_SEAT, cardId)
     }
@@ -108,7 +109,13 @@ class LocalBotSession(
         autoPlay = false
         wallet.debit(economy.entryCost)
         publish(players, engine.start(players, random))
-        beginTurn()
+        // Everyone sees the dealt board and a get-ready countdown; the first turn starts when it ends.
+        _state.update { it.copy(countdown = TurnTimer(seat = -1, startedAtMs = MonotonicClock.nowMs(), durationMs = config.startCountdownMs + config.startFlashMs)) }
+        turnJob = scope.launch {
+            delay(config.startCountdownMs + config.startFlashMs)
+            _state.update { it.copy(countdown = null) }
+            beginTurn()
+        }
     }
 
     private fun apply(game: GameState, seat: Int, cardId: Int) {
@@ -167,7 +174,7 @@ class LocalBotSession(
     private companion object {
         const val LOCAL_SEAT = 0
         const val MOVE_MARGIN_MS = 500L
-        const val AUTO_START_DELAY_MS = 1_500L
+        const val AUTO_START_DELAY_MS = 900L
         val BOT_NAMES = listOf("Sakura", "Ren", "Yuki", "Haruto")
     }
 }

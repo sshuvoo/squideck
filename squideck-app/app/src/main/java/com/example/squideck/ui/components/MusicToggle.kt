@@ -28,7 +28,7 @@ import com.example.squideck.ui.theme.White
 fun MusicToggle(enabled: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
     Canvas(
         modifier
-            .size(40.dp)
+            .size(GameButtonHeight)
             .clip(CircleShape)
             .background(Ink.copy(alpha = 0.35f))
             .border(1.dp, White.copy(alpha = 0.12f), CircleShape)

@@ -18,6 +18,8 @@ data class SessionState(
     val recipientSeat: Int? = null,
     /** Countdown for whoever is on turn; null when no round is running. */
     val turnTimer: TurnTimer? = null,
+    /** Set during the get-ready countdown before a round's first turn; nobody can move until it ends. */
+    val countdown: TurnTimer? = null,
     /** True while a bot is playing for the local player after a timeout, until they take control back. */
     val autoPlay: Boolean = false,
     val localSeat: Int = 0,
@@ -29,6 +31,7 @@ data class SessionState(
 ) {
     val canAffordEntry: Boolean get() = balance >= economy.entryCost
     val isTableFull: Boolean get() = players.size == playerCount
+    val isCountingDown: Boolean get() = countdown != null
 }
 
 /**

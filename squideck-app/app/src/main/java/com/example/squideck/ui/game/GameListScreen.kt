@@ -1,5 +1,6 @@
 package com.example.squideck.ui.game
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,12 +26,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.squideck.domain.economy.UsCents
+import com.example.squideck.ui.components.ConfirmDialog
 import com.example.squideck.ui.components.CreditsChip
 import com.example.squideck.ui.components.GameButton
 import com.example.squideck.ui.components.GameButtonSize
 import com.example.squideck.ui.components.GameButtonStyle
 import com.example.squideck.ui.components.GameText
-import com.example.squideck.ui.components.InfoButton
 import com.example.squideck.ui.theme.Ink
 import com.example.squideck.ui.theme.Pink
 import com.example.squideck.ui.theme.Teal
@@ -43,9 +44,23 @@ fun GameListScreen(
     onJoin: () -> Unit,
     onChangeName: () -> Unit,
     onRefillWallet: () -> Unit,
+    onExit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showRules by rememberSaveable { mutableStateOf(false) }
+    var confirmExit by rememberSaveable { mutableStateOf(false) }
+    // The game list is the home screen: Back asks before closing the app instead of just minimising it.
+    BackHandler { confirmExit = true }
+    if (confirmExit) {
+        ConfirmDialog(
+            title = "Exit game?",
+            message = "Do you want to close Squideck?",
+            confirmLabel = "Exit",
+            dismissLabel = "Stay",
+            onConfirm = onExit,
+            onDismiss = { confirmExit = false },
+        )
+    }
     val economy = state.economy
     Column(modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -67,47 +82,27 @@ fun GameListScreen(
             letterSpacing = 1.5.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surface) {
-            Box {
-                // Faint brand mark in the corner gives the card some character.
-                BrandSymbols(40.dp, Modifier.align(Alignment.TopEnd).padding(top = 76.dp, end = 18.dp), color = Pink.copy(alpha = 0.12f))
-                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Box(Modifier.size(8.dp).background(Teal, CircleShape))
-                        GameText("OPEN", Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
-                        // The rules belong to this table's game; other games will bring their own.
-                        InfoButton({ showRules = true }, description = "How to play the ${economy.entryCost} table")
-                    }
-                    GameText("${economy.entryCost} table", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
-                    GameText("5 players · 3 winners · entry ${economy.entryCost}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        PrizeChip("1ST", economy.payoutFor(1), highlight = true, modifier = Modifier.weight(1f))
-                        PrizeChip("2ND", economy.payoutFor(2), modifier = Modifier.weight(1f))
-                        PrizeChip("3RD", economy.payoutFor(3), modifier = Modifier.weight(1f))
-                    }
-                    GameButton("Join · ${economy.entryCost}", onJoin, Modifier.fillMaxWidth(), enabled = state.canAffordEntry)
-                    if (!state.canAffordEntry) {
-                        GameText("Not enough credits to play.", color = Pink)
-                        GameButton("Add demo credits", onRefillWallet, style = GameButtonStyle.Secondary, size = GameButtonSize.Small)
-                    }
-                }
-            }
+        // The table is the show's invitation card. Tapping it always opens the details and rules first; the
+        // sheet's bottom button joins.
+        InvitationCard(
+            footer = if (state.canAffordEntry) "Tap to join · ${economy.entryCost}" else "Not enough credits",
+            onClick = { showRules = true },
+            clickDescription = "Open the ${economy.entryCost} table",
+        )
+        if (!state.canAffordEntry) {
+            GameButton("Add demo credits", onRefillWallet, style = GameButtonStyle.Secondary, size = GameButtonSize.Small)
         }
     }
     if (showRules) {
-        RulesSheet(squideckRules(economy), onDismiss = { showRules = false })
-    }
-}
-
-@Composable
-private fun PrizeChip(place: String, amount: UsCents, modifier: Modifier = Modifier, highlight: Boolean = false) {
-    Column(
-        modifier
-            .background(Ink.copy(alpha = 0.28f), RoundedCornerShape(14.dp))
-            .padding(vertical = 10.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        GameText(place, style = MaterialTheme.typography.labelSmall, letterSpacing = 1.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        GameText(amount.toString(), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = if (highlight) Pink else White)
+        RulesSheet(
+            squideckRules(economy),
+            onDismiss = { showRules = false },
+            actionLabel = if (state.canAffordEntry) "Join · ${economy.entryCost}" else "Not enough credits",
+            actionEnabled = state.canAffordEntry,
+            onAction = {
+                showRules = false
+                onJoin()
+            },
+        )
     }
 }
