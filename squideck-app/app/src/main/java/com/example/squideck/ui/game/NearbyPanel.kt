@@ -34,10 +34,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.example.squideck.data.nearby.NearbyPermissions
 import com.example.squideck.domain.economy.EconomyConfig
 import com.example.squideck.net.RoomAd
@@ -73,9 +76,23 @@ fun NearbyPanel(
         askedOnce = true
         granted = NearbyPermissions.granted(context)
     }
+    var locationOff by remember { mutableStateOf(NearbyPermissions.locationSwitchOff(context)) }
+    // The player may turn Location on or grant permissions in Settings and come back: check again on return.
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(lifecycle) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                granted = NearbyPermissions.granted(context)
+                locationOff = NearbyPermissions.locationSwitchOff(context)
+            }
+        }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
+    val ready = granted && !locationOff && playServicesReady
     // Search only while the panel is visible and allowed; stop when leaving to save battery.
-    DisposableEffect(granted, playServicesReady) {
-        if (granted && playServicesReady) onStartSearch()
+    DisposableEffect(ready) {
+        if (ready) onStartSearch()
         onDispose { onStopSearch() }
     }
 
@@ -84,7 +101,13 @@ fun NearbyPanel(
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         InvitationCard(
             footer = "Tap to create a room",
-            onClick = { if (granted) rulesFor = NearbyAction.Create else launcher.launch(NearbyPermissions.required) },
+            onClick = {
+                when {
+                    !granted -> launcher.launch(NearbyPermissions.required)
+                    locationOff -> context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                    else -> rulesFor = NearbyAction.Create
+                }
+            },
             clickDescription = "Create a nearby room",
         )
         GameText(
@@ -104,6 +127,11 @@ fun NearbyPanel(
                         Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)),
                     )
                 },
+            )
+            locationOff -> Notice(
+                "On this Android version, finding phones nearby needs Location turned on. Squideck still never uses your location.",
+                action = "Turn on Location",
+                onAction = { context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)) },
             )
             browse.error != null -> Notice(browse.error, action = "Try again", onAction = { onStopSearch(); onStartSearch() })
             browse.rooms.isEmpty() -> Searching()
