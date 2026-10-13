@@ -20,9 +20,10 @@ object NearbyPermissions {
                 Manifest.permission.BLUETOOTH_ADVERTISE,
                 Manifest.permission.BLUETOOTH_CONNECT,
                 Manifest.permission.BLUETOOTH_SCAN,
+                Manifest.permission.ACCESS_COARSE_LOCATION,
                 Manifest.permission.ACCESS_FINE_LOCATION,
             )
-            else -> arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+            else -> arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION)
         }
 
     fun granted(context: Context): Boolean =

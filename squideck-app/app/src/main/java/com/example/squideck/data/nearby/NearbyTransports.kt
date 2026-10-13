@@ -47,7 +47,8 @@ internal fun describe(error: Exception): String {
         ConnectionsStatusCodes.MISSING_PERMISSION_ACCESS_WIFI_STATE,
         ConnectionsStatusCodes.MISSING_PERMISSION_CHANGE_WIFI_STATE,
         ConnectionsStatusCodes.MISSING_PERMISSION_ACCESS_COARSE_LOCATION,
-        -> "Squideck needs the Nearby devices permission."
+        -> "Squideck needs the Nearby devices permission. Allow it in Settings, then try again " +
+            "(${ConnectionsStatusCodes.getStatusCodeString(code)})."
         ConnectionsStatusCodes.STATUS_ENDPOINT_UNKNOWN -> "That room is no longer nearby."
         ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED -> "The room didn't let you in."
         ConnectionsStatusCodes.STATUS_ALREADY_ADVERTISING,
