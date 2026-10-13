@@ -4,8 +4,6 @@ import com.example.squideck.domain.GameConfig
 import com.example.squideck.domain.GameEngine
 import com.example.squideck.domain.MonotonicClock
 import com.example.squideck.domain.Player
-import com.example.squideck.domain.economy.EconomyConfig
-import com.example.squideck.domain.economy.Wallet
 import com.example.squideck.domain.round.RoundState
 import com.example.squideck.domain.session.GameSession
 import com.example.squideck.domain.session.RoomInfo
@@ -26,7 +24,6 @@ class ClientSession(
     scope: CoroutineScope,
     private val playerName: String,
     private val avatarId: Int,
-    private val wallet: Wallet,
     private val transport: ClientTransport,
     roomId: String,
     creatorName: String,
@@ -50,7 +47,7 @@ class ClientSession(
     }
 
     private fun view(): SessionState = sessionView(
-        players, round, seat, engine, config, wallet.balance.value, EconomyConfig(), freePlay = true, room = room,
+        players, round, seat, engine, config, room = room,
     ).copy(endedReason = endedReason)
 
     private fun publish() {

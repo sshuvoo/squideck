@@ -42,7 +42,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.example.squideck.data.nearby.NearbyPermissions
-import com.example.squideck.domain.economy.EconomyConfig
 import com.example.squideck.net.RoomAd
 import com.example.squideck.ui.components.GameButton
 import com.example.squideck.ui.components.GameButtonSize
@@ -60,7 +59,6 @@ import com.google.android.gms.common.GoogleApiAvailability
 @Composable
 fun NearbyPanel(
     browse: NearbyBrowse,
-    economy: EconomyConfig,
     onStartSearch: () -> Unit,
     onStopSearch: () -> Unit,
     onCreateRoom: () -> Unit,
@@ -141,7 +139,7 @@ fun NearbyPanel(
 
     rulesFor?.let { action ->
         RulesSheet(
-            squideckRules(economy, freePlay = true, title = when (action) {
+            squideckRules(title = when (action) {
                 NearbyAction.Create -> "Nearby room"
                 is NearbyAction.Join -> "${action.room.creatorName}'s room"
             }),

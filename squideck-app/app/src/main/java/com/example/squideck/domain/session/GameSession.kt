@@ -3,9 +3,7 @@ package com.example.squideck.domain.session
 import com.example.squideck.domain.GameState
 import com.example.squideck.domain.Player
 import com.example.squideck.domain.TurnTimer
-import com.example.squideck.domain.economy.EconomyConfig
 import com.example.squideck.domain.economy.Settlement
-import com.example.squideck.domain.economy.UsCents
 import kotlinx.coroutines.flow.StateFlow
 
 /** What the local player can see and do. */
@@ -24,18 +22,13 @@ data class SessionState(
     val autoPlay: Boolean = false,
     val localSeat: Int = 0,
     val playerCount: Int = 5,
-    val balance: UsCents = UsCents(0),
-    val economy: EconomyConfig = EconomyConfig(),
     /** Set once a round has finished. */
     val settlement: Settlement? = null,
-    /** Nearby games are just for fun: no entry fee and no prizes. */
-    val freePlay: Boolean = false,
     /** Set for nearby games: whose room this is and what this phone may do in it. */
     val room: RoomInfo? = null,
     /** Set when the session ended on its own (room closed, connection lost); the UI shows it and leaves. */
     val endedReason: String? = null,
 ) {
-    val canAffordEntry: Boolean get() = freePlay || balance >= economy.entryCost
     val isTableFull: Boolean get() = players.size == playerCount
     val isCountingDown: Boolean get() = countdown != null
 }
@@ -68,6 +61,6 @@ interface GameSession {
     /** Stops auto-play so the local player moves for themselves again. */
     fun takeControl()
 
-    /** Stops the session; the caller returns to the game list. Leaving mid-round forfeits the entry. */
+    /** Stops the session; the caller returns to the game list. */
     fun close()
 }

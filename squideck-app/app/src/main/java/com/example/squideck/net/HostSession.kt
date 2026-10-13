@@ -9,8 +9,6 @@ import com.example.squideck.domain.Phase
 import com.example.squideck.domain.Player
 import com.example.squideck.domain.RandomThinkTime
 import com.example.squideck.domain.ThinkTime
-import com.example.squideck.domain.economy.EconomyConfig
-import com.example.squideck.domain.economy.Wallet
 import com.example.squideck.domain.round.RoundController
 import com.example.squideck.domain.round.RoundState
 import com.example.squideck.domain.session.GameSession
@@ -35,7 +33,6 @@ class HostSession(
     private val scope: CoroutineScope,
     private val playerName: String,
     private val avatarId: Int,
-    private val wallet: Wallet,
     private val transport: HostTransport,
     private val config: GameConfig = GameConfig(),
     private val engine: GameEngine = GameEngine(config),
@@ -73,8 +70,7 @@ class HostSession(
     private val inRound: Boolean get() = round.state.value != null
 
     private fun view() = sessionView(
-        players, round.state.value, CREATOR_SEAT, engine, config, wallet.balance.value, EconomyConfig(),
-        freePlay = true, room = room,
+        players, round.state.value, CREATOR_SEAT, engine, config, room = room,
     )
 
     override fun startNow() {

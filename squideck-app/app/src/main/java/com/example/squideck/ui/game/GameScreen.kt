@@ -106,7 +106,7 @@ fun GameScreen(
     BackHandler(onBack = requestLeave)
     Box(modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            GameTopBar(onLeave = requestLeave, credits = session.balance, musicEnabled = musicEnabled, onToggleMusic = onToggleMusic, freePlay = session.freePlay)
+            GameTopBar(onLeave = requestLeave, musicEnabled = musicEnabled, onToggleMusic = onToggleMusic)
             PlayerTable(
                 seats = game.players.map { seatInfo(it, game, session) },
                 localSeat = session.localSeat,
@@ -127,8 +127,8 @@ fun GameScreen(
                 title = "Leave game?",
                 message = when {
                     session.room?.isCreator == true -> "This closes your room for everyone."
-                    session.freePlay -> "A bot will play your seat for the rest of this round."
-                    else -> "You will leave this round and return to the game list. Your entry is not refunded."
+                    session.room != null -> "A bot will play your seat for the rest of this round."
+                    else -> "You will leave this round and return to the game list."
                 },
                 confirmLabel = "Leave",
                 dismissLabel = "Stay",
@@ -389,7 +389,6 @@ private fun ResultOverlay(session: SessionState, onRestart: () -> Unit, onLeave:
     val settlement = session.settlement ?: return
     val myPlace = game.winners.indexOf(session.localSeat) + 1
     val won = myPlace > 0 && !settlement.refunded
-    val net = settlement.netFor(session.localSeat)
     Box(
         Modifier.fillMaxSize().background(Ink.copy(alpha = 0.82f)).clickable(enabled = false) {},
         contentAlignment = Alignment.Center,
@@ -410,10 +409,8 @@ private fun ResultOverlay(session: SessionState, onRestart: () -> Unit, onLeave:
                 )
                 GameText(
                     when {
-                        session.freePlay && settlement.refunded -> "No legal moves were left."
-                        session.freePlay -> "Free play \u00b7 no credits won or lost"
-                        settlement.refunded -> "No legal moves were left, so every entry was refunded."
-                        else -> "${net.toSignedString()} this round \u00b7 Credits ${session.balance}"
+                        settlement.refunded -> "No legal moves were left."
+                        else -> "Free play"
                     },
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -442,20 +439,13 @@ private fun ResultOverlay(session: SessionState, onRestart: () -> Unit, onLeave:
                             )
                             AnimeAvatar(AvatarStyles.byId(player.avatarId), Modifier.size(30.dp))
                             GameText(if (me) "You" else player.name, Modifier.weight(1f), fontWeight = if (me) FontWeight.Black else FontWeight.Normal)
-                            if (!session.freePlay) {
-                                GameText(settlement.payoutFor(seat).toString(), fontWeight = FontWeight.Bold, color = if (me) Pink else MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
                         }
                     }
                 }
                 when {
                     // In a nearby room only its creator starts the next round; everyone else waits for them.
                     !session.canControlRound -> GameButton("Waiting for ${session.room?.creatorName}\u2026", {}, Modifier.fillMaxWidth(), enabled = false)
-                    session.freePlay -> GameButton("Play again", onRestart, Modifier.fillMaxWidth())
-                    else -> GameButton(
-                        if (session.canAffordEntry) "Play again \u00b7 ${session.economy.entryCost}" else "Not enough credits",
-                        onRestart, Modifier.fillMaxWidth(), enabled = session.canAffordEntry,
-                    )
+                    else -> GameButton("Play again", onRestart, Modifier.fillMaxWidth())
                 }
                 GameButton(if (session.room != null) "Leave room" else "Leave table", onLeave, Modifier.fillMaxWidth(), style = GameButtonStyle.Ghost, size = GameButtonSize.Small)
             }

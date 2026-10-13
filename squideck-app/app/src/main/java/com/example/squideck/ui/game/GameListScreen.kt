@@ -27,9 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.squideck.domain.economy.UsCents
 import com.example.squideck.ui.components.ConfirmDialog
-import com.example.squideck.ui.components.CreditsChip
 import com.example.squideck.ui.components.GameButton
 import com.example.squideck.ui.components.GameButtonSize
 import com.example.squideck.ui.components.GameButtonStyle
@@ -54,7 +52,6 @@ fun GameListScreen(
     onCreateRoom: () -> Unit,
     onJoinRoom: (com.example.squideck.net.RoomAd) -> Unit,
     onChangeName: () -> Unit,
-    onRefillWallet: () -> Unit,
     onExit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -73,15 +70,11 @@ fun GameListScreen(
             onDismiss = { confirmExit = false },
         )
     }
-    val economy = state.economy
     Column(
         modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            BrandMark()
-            CreditsChip(state.credits)
-        }
+        BrandMark()
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             AnimeAvatar(AvatarStyles.byId(state.avatarId), Modifier.size(48.dp))
             Column(Modifier.weight(1f).padding(start = 14.dp)) {
@@ -96,26 +89,22 @@ fun GameListScreen(
             onSelect = { mode = PlayMode.entries[it] },
         )
         if (mode == PlayMode.Nearby) {
-            NearbyPanel(state.nearby, economy, onStartNearbySearch, onStopNearbySearch, onCreateRoom, onJoinRoom)
+            NearbyPanel(state.nearby, onStartNearbySearch, onStopNearbySearch, onCreateRoom, onJoinRoom)
             return@Column
         }
         // The table is the show's invitation card. Tapping it always opens the details and rules first; the
         // sheet's bottom button joins.
         InvitationCard(
-            footer = if (state.canAffordEntry) "Tap to join · ${economy.entryCost}" else "Not enough credits",
+            footer = "Join",
             onClick = { showRules = true },
-            clickDescription = "Open the ${economy.entryCost} table",
+            clickDescription = "Open the bot table",
         )
-        if (!state.canAffordEntry) {
-            GameButton("Add demo credits", onRefillWallet, style = GameButtonStyle.Secondary, size = GameButtonSize.Small)
-        }
     }
     if (showRules) {
         RulesSheet(
-            squideckRules(economy),
+            squideckRules(BOT_TABLE_TITLE),
             onDismiss = { showRules = false },
-            actionLabel = if (state.canAffordEntry) "Join · ${economy.entryCost}" else "Not enough credits",
-            actionEnabled = state.canAffordEntry,
+            actionLabel = "Join",
             onAction = {
                 showRules = false
                 onJoin()

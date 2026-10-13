@@ -53,18 +53,17 @@ fun LobbyScreen(
 ) {
     BackHandler(onBack = onLeave)
     KeepScreenOn()
-    val economy = state.economy
     val room = state.room
     val connecting = room != null && state.players.isEmpty()
     Column(Modifier.then(modifier).fillMaxSize().padding(start = 24.dp, end = 24.dp, bottom = 24.dp)) {
-        GameTopBar(onLeave = onLeave, credits = state.balance, musicEnabled = musicEnabled, onToggleMusic = onToggleMusic, freePlay = state.freePlay)
+        GameTopBar(onLeave = onLeave, musicEnabled = musicEnabled, onToggleMusic = onToggleMusic)
         Column(
             Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             GameText(
-                if (room != null) "${room.creatorName}'s room" else "${economy.entryCost} table",
+                if (room != null) "${room.creatorName}'s room" else BOT_TABLE_TITLE,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Black,
             )
@@ -88,11 +87,8 @@ fun LobbyScreen(
                 )
             }
             when {
-                room == null -> GameText(
-                    "1st ${economy.payoutFor(1)}  \u00b7  2nd ${economy.payoutFor(2)}  \u00b7  3rd ${economy.payoutFor(3)}",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.labelLarge,
-                )
+                // Bot tables start by themselves; nothing to add under the seats.
+                room == null -> Unit
                 room.isCreator && !state.isTableFull -> {
                     val bots = state.playerCount - state.players.size
                     GameButton(

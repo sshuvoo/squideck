@@ -88,7 +88,7 @@ class MainActivity : ComponentActivity() {
                             Screen.GameList -> GameListScreen(
                                 state, viewModel::joinTable,
                                 viewModel::startNearbySearch, viewModel::stopNearbySearch, viewModel::createRoom, viewModel::joinRoom,
-                                viewModel::changeName, viewModel::refillWallet,
+                                viewModel::changeName,
                                 // A clean exit: finish the activity, which also releases the music player.
                                 onExit = { finish() },
                                 modifier = content,

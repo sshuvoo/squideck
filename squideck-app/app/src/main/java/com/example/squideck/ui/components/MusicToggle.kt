@@ -23,7 +23,7 @@ import com.example.squideck.ui.theme.Ink
 import com.example.squideck.ui.theme.Pink
 import com.example.squideck.ui.theme.White
 
-/** Round speaker button that turns the game music on and off; matches the credits chip. */
+/** Round speaker button that turns the game music on and off. */
 @Composable
 fun MusicToggle(enabled: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
     Canvas(

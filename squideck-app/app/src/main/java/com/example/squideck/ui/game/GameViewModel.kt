@@ -8,9 +8,6 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.squideck.data.SharedPrefsProfileStore
 import com.example.squideck.data.SharedPrefsSettingsStore
 import com.example.squideck.domain.Phase
-import com.example.squideck.domain.economy.EconomyConfig
-import com.example.squideck.domain.economy.UsCents
-import com.example.squideck.domain.economy.Wallet
 import com.example.squideck.domain.profile.PlayerName
 import com.example.squideck.domain.profile.ProfileStore
 import com.example.squideck.domain.session.GameSession
@@ -42,13 +39,11 @@ data class NearbyBrowse(
     val error: String? = null,
 )
 
-/** Everything the screens render: which screen, the player, their credits and the table they sit at. */
+/** Everything the screens render: which screen, the player and the table they sit at. */
 data class GameUiState(
     val screen: Screen,
     val playerName: String = "",
     val avatarId: Int = AvatarStyles.DEFAULT_PLAYER_ID,
-    val credits: UsCents = UsCents(0),
-    val economy: EconomyConfig = EconomyConfig(),
     /** Present once the player has joined a table. */
     val session: SessionState? = null,
     val musicEnabled: Boolean = true,
@@ -58,7 +53,6 @@ data class GameUiState(
     /** Music plays while a round is on screen, quieter under the results card. */
     val musicPlaying: Boolean get() = musicEnabled && screen == Screen.Game
     val roundOver: Boolean get() = session?.game?.let { it.phase != Phase.Playing } ?: false
-    val canAffordEntry: Boolean get() = credits >= economy.entryCost
     val hasName: Boolean get() = playerName.isNotBlank()
 }
 
@@ -66,9 +60,7 @@ data class GameUiState(
 class GameViewModel(
     private val profileStore: ProfileStore,
     private val settingsStore: SettingsStore,
-    private val wallet: Wallet,
-    private val economy: EconomyConfig,
-    private val sessionFactory: (scope: CoroutineScope, name: String, avatarId: Int, wallet: Wallet) -> GameSession,
+    private val sessionFactory: (scope: CoroutineScope, name: String, avatarId: Int) -> GameSession,
     private val radios: NearbyRadios,
 ) : ViewModel() {
     private val playerName = MutableStateFlow(profileStore.loadName())
@@ -90,15 +82,15 @@ class GameViewModel(
     private val profile = combine(playerName, avatarId, musicEnabled) { name, avatar, music -> Triple(name, avatar, music) }
 
     val state: StateFlow<GameUiState> = combine(
-        profile, editingName, wallet.balance, sessionState, nearby,
-    ) { (name, avatar, music), editing, credits, table, rooms ->
+        profile, editingName, sessionState, nearby,
+    ) { (name, avatar, music), editing, table, rooms ->
         val screen = when {
             name.isNullOrBlank() || editing -> Screen.Name
             table == null -> Screen.GameList
             table.game == null -> Screen.Lobby
             else -> Screen.Game
         }
-        GameUiState(screen, name.orEmpty(), avatar, credits, economy, table, music, rooms)
+        GameUiState(screen, name.orEmpty(), avatar, table, music, rooms)
     }.stateIn(
         viewModelScope,
         SharingStarted.Eagerly,
@@ -106,8 +98,6 @@ class GameViewModel(
             screen = if (playerName.value.isNullOrBlank()) Screen.Name else Screen.GameList,
             playerName = playerName.value.orEmpty(),
             avatarId = avatarId.value,
-            credits = wallet.balance.value,
-            economy = economy,
             musicEnabled = musicEnabled.value,
         ),
     )
@@ -138,11 +128,11 @@ class GameViewModel(
         if (!playerName.value.isNullOrBlank()) editingName.value = false
     }
 
-    /** Sits the player at the (only) 10-cent table; the entry is charged when the round starts. */
+    /** Sits the player at the bot table (free play). */
     fun joinTable() {
         val name = playerName.value ?: return
-        if (session.value != null || !wallet.canAfford(economy.entryCost)) return
-        session.value = sessionFactory(viewModelScope, name, avatarId.value, wallet)
+        if (session.value != null) return
+        session.value = sessionFactory(viewModelScope, name, avatarId.value)
     }
 
     /** Nearby tab opened: look for rooms (the caller has made sure permissions are granted). */
@@ -167,7 +157,7 @@ class GameViewModel(
         val name = playerName.value ?: return
         if (session.value != null) return
         stopNearbySearch()
-        session.value = HostSession(viewModelScope, name, avatarId.value, wallet, radios.host(), botAvatarIds = AvatarStyles.idsExcept(avatarId.value) + avatarId.value)
+        session.value = HostSession(viewModelScope, name, avatarId.value, radios.host(), botAvatarIds = AvatarStyles.idsExcept(avatarId.value) + avatarId.value)
     }
 
     /** Joins a room found nearby, reusing the radio that found it. */
@@ -177,7 +167,7 @@ class GameViewModel(
         if (session.value != null) return
         browser = null
         browserFlow.value = null
-        session.value = ClientSession(viewModelScope, name, avatarId.value, wallet, radio, room.id, room.creatorName)
+        session.value = ClientSession(viewModelScope, name, avatarId.value, radio, room.id, room.creatorName)
     }
 
     /** Room creator: start now, bots fill the empty seats. */
@@ -185,14 +175,10 @@ class GameViewModel(
         session.value?.startNow()
     }
 
-    /** Back to the game list. Leaving mid-round forfeits the entry that was already paid. */
+    /** Back to the game list. */
     fun leaveTable() {
         session.value?.close()
         session.value = null
-    }
-
-    fun refillWallet() {
-        if (!wallet.canAfford(economy.entryCost)) wallet.reset()
     }
 
     fun restart() {
@@ -229,10 +215,8 @@ class GameViewModel(
                 GameViewModel(
                     profileStore = SharedPrefsProfileStore(app),
                     settingsStore = SharedPrefsSettingsStore(app),
-                    wallet = Wallet(),
-                    economy = EconomyConfig(),
-                    sessionFactory = { scope, name, avatar, wallet ->
-                        LocalBotSession(scope, name, wallet, playerAvatarId = avatar, botAvatarIds = AvatarStyles.idsExcept(avatar))
+                    sessionFactory = { scope, name, avatar ->
+                        LocalBotSession(scope, name, playerAvatarId = avatar, botAvatarIds = AvatarStyles.idsExcept(avatar))
                     },
                     radios = com.example.squideck.data.nearby.NearbyRadios(app),
                 )

@@ -5,8 +5,6 @@ import com.example.squideck.domain.GameEvent
 import com.example.squideck.domain.GameEngine
 import com.example.squideck.domain.Phase
 import com.example.squideck.domain.ThinkTime
-import com.example.squideck.domain.economy.UsCents
-import com.example.squideck.domain.economy.Wallet
 import com.example.squideck.net.ClientMessage
 import com.example.squideck.net.ClientSession
 import com.example.squideck.net.HostMessage
@@ -36,13 +34,13 @@ class NearbySessionTest {
     private val fastBots = ThinkTime { 100L }
     private val countdown = config.startCountdownMs + config.startFlashMs
 
-    private fun TestScope.host(net: FakeNearbyNetwork, wallet: Wallet = Wallet()) = HostSession(
-        backgroundScope, "Shuvo", 4, wallet, net.host, config, engine, thinkTime = fastBots, random = Random(7),
+    private fun TestScope.host(net: FakeNearbyNetwork) = HostSession(
+        backgroundScope, "Shuvo", 4, net.host, config, engine, thinkTime = fastBots, random = Random(7),
         clock = { testScheduler.currentTime },
     )
 
     private fun TestScope.client(net: FakeNearbyNetwork, name: String) = ClientSession(
-        backgroundScope, name, 1, Wallet(), net.newClient(), "room", "Shuvo", config, engine,
+        backgroundScope, name, 1, net.newClient(), "room", "Shuvo", config, engine,
         clock = { testScheduler.currentTime },
     )
 
@@ -80,7 +78,6 @@ class NearbySessionTest {
         runCurrent()
         assertNull(friend.state.value.countdown)
         assertNotNull(friend.state.value.turnTimer)
-        assertTrue(host.state.value.freePlay && friend.state.value.freePlay)
     }
 
     @Test
@@ -112,8 +109,7 @@ class NearbySessionTest {
     @Test
     fun aRoundPlaysToTheEndOverTheNetworkWithoutCredits() = runTest {
         val net = FakeNearbyNetwork()
-        val wallet = Wallet(UsCents(500))
-        val host = host(net, wallet)
+        val host = host(net)
         val friend = client(net, "Mina")
         runCurrent()
         host.startNow()
@@ -124,8 +120,7 @@ class NearbySessionTest {
         assertTrue(game.phase != Phase.Playing)
         assertEquals(game.phase, friend.state.value.game!!.phase)
         assertEquals(game.winners, friend.state.value.game!!.winners)
-        assertEquals(UsCents(500), wallet.balance.value)
-        assertTrue(friend.state.value.settlement!!.payouts.values.all { it == UsCents(0) })
+        assertEquals(game.winners, friend.state.value.settlement!!.places.take(game.winners.size))
     }
 
     @Test
