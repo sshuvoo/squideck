@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -32,22 +34,32 @@ import com.example.squideck.ui.components.GameButton
 import com.example.squideck.ui.components.GameButtonSize
 import com.example.squideck.ui.components.GameButtonStyle
 import com.example.squideck.ui.components.GameText
+import com.example.squideck.ui.components.ModeTab
+import com.example.squideck.ui.components.ModeTabs
 import com.example.squideck.ui.theme.Ink
 import com.example.squideck.ui.theme.Pink
 import com.example.squideck.ui.theme.Teal
 import com.example.squideck.ui.theme.White
 
-/** Lists the tables you can sit at. For now there is a single 10-cent table. */
+/** Ways to play, picked with the tabs: online (coming soon), nearby with friends, or against bots. */
+private enum class PlayMode { Online, Nearby, Bots }
+
+/** Home screen: the player, how to play, and the table or room to join. */
 @Composable
 fun GameListScreen(
     state: GameUiState,
     onJoin: () -> Unit,
+    onStartNearbySearch: () -> Unit,
+    onStopNearbySearch: () -> Unit,
+    onCreateRoom: () -> Unit,
+    onJoinRoom: (com.example.squideck.net.RoomAd) -> Unit,
     onChangeName: () -> Unit,
     onRefillWallet: () -> Unit,
     onExit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showRules by rememberSaveable { mutableStateOf(false) }
+    var mode by rememberSaveable { mutableStateOf(PlayMode.Bots) }
     var confirmExit by rememberSaveable { mutableStateOf(false) }
     // The game list is the home screen: Back asks before closing the app instead of just minimising it.
     BackHandler { confirmExit = true }
@@ -62,7 +74,10 @@ fun GameListScreen(
         )
     }
     val economy = state.economy
-    Column(modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+    Column(
+        modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+    ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             BrandMark()
             CreditsChip(state.credits)
@@ -75,13 +90,15 @@ fun GameListScreen(
             }
             GameButton("Edit", onChangeName, style = GameButtonStyle.Ghost, size = GameButtonSize.Small)
         }
-        GameText(
-            "TABLES",
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Black,
-            letterSpacing = 1.5.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        ModeTabs(
+            tabs = listOf(ModeTab("Online", enabled = false, badge = "SOON"), ModeTab("Nearby"), ModeTab("Bots")),
+            selected = mode.ordinal,
+            onSelect = { mode = PlayMode.entries[it] },
         )
+        if (mode == PlayMode.Nearby) {
+            NearbyPanel(state.nearby, economy, onStartNearbySearch, onStopNearbySearch, onCreateRoom, onJoinRoom)
+            return@Column
+        }
         // The table is the show's invitation card. Tapping it always opens the details and rules first; the
         // sheet's bottom button joins.
         InvitationCard(

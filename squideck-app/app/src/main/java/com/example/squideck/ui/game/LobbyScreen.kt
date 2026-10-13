@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -28,10 +29,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.squideck.domain.Player
 import com.example.squideck.domain.session.SessionState
+import com.example.squideck.ui.components.GameButton
 import com.example.squideck.ui.components.GameText
 import com.example.squideck.ui.components.GameTopBar
 import com.example.squideck.ui.theme.Pink
@@ -44,34 +48,81 @@ fun LobbyScreen(
     musicEnabled: Boolean,
     onToggleMusic: () -> Unit,
     onLeave: () -> Unit,
+    onStartNow: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     BackHandler(onBack = onLeave)
+    KeepScreenOn()
     val economy = state.economy
+    val room = state.room
+    val connecting = room != null && state.players.isEmpty()
     Column(Modifier.then(modifier).fillMaxSize().padding(start = 24.dp, end = 24.dp, bottom = 24.dp)) {
-        GameTopBar(onLeave = onLeave, credits = state.balance, musicEnabled = musicEnabled, onToggleMusic = onToggleMusic)
+        GameTopBar(onLeave = onLeave, credits = state.balance, musicEnabled = musicEnabled, onToggleMusic = onToggleMusic, freePlay = state.freePlay)
         Column(
             Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            GameText("${economy.entryCost} table", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
             GameText(
-                if (!state.isTableFull) "Waiting for players (${state.players.size}/${state.playerCount})"
-                else "Table full \u2014 starting\u2026",
+                if (room != null) "${room.creatorName}'s room" else "${economy.entryCost} table",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Black,
+            )
+            GameText(
+                when {
+                    connecting -> "Connecting\u2026"
+                    state.isTableFull -> "Table full \u2014 starting\u2026"
+                    room != null -> "Waiting for friends (${state.players.size}/${state.playerCount})"
+                    else -> "Waiting for players (${state.players.size}/${state.playerCount})"
+                },
                 color = if (state.isTableFull) Pink else MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = if (state.isTableFull) FontWeight.Bold else FontWeight.Normal,
             )
             SeatProgress(filled = state.players.size, total = state.playerCount)
             repeat(state.playerCount) { seat ->
-                LobbySlot(state.players.getOrNull(seat))
+                LobbySlot(
+                    state.players.getOrNull(seat),
+                    isLocal = seat == state.localSeat && !connecting,
+                    isCreator = room != null && seat == 0,
+                    emptyText = if (room != null) "Waiting for a friend\u2026" else "Searching for a player\u2026",
+                )
             }
-            GameText(
-                "1st ${economy.payoutFor(1)}  \u00b7  2nd ${economy.payoutFor(2)}  \u00b7  3rd ${economy.payoutFor(3)}",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.labelLarge,
-            )
+            when {
+                room == null -> GameText(
+                    "1st ${economy.payoutFor(1)}  \u00b7  2nd ${economy.payoutFor(2)}  \u00b7  3rd ${economy.payoutFor(3)}",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+                room.isCreator && !state.isTableFull -> {
+                    val bots = state.playerCount - state.players.size
+                    GameButton(
+                        if (bots == state.playerCount - 1) "Start with $bots bots" else if (bots == 1) "Start \u00b7 1 bot joins" else "Start \u00b7 $bots bots join",
+                        onStartNow,
+                        Modifier.fillMaxWidth(),
+                    )
+                    GameText(
+                        "Friends nearby: open Squideck \u2192 Nearby \u2192 join ${room.creatorName}'s room.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+                !room.isCreator && !connecting -> GameText(
+                    "Waiting for ${room.creatorName} to start\u2026",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
+    }
+}
+
+/** Waiting for friends can take a while; keep the screen awake meanwhile. */
+@Composable
+private fun KeepScreenOn() {
+    val view = LocalView.current
+    DisposableEffect(view) {
+        view.keepScreenOn = true
+        onDispose { view.keepScreenOn = false }
     }
 }
 
@@ -93,18 +144,18 @@ private fun SeatProgress(filled: Int, total: Int) {
 }
 
 @Composable
-private fun LobbySlot(player: Player?) {
+private fun LobbySlot(player: Player?, isLocal: Boolean, isCreator: Boolean, emptyText: String) {
     Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             when {
                 player == null -> {
                     EmptyAvatarSlot()
-                    GameText("Searching for a player…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    GameText(emptyText, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                !player.isBot -> {
+                isLocal -> {
                     AnimeAvatar(AvatarStyles.byId(player.avatarId), Modifier.size(56.dp).border(2.dp, Pink, CircleShape))
                     GameText(player.name, Modifier.weight(1f), fontWeight = FontWeight.Bold)
-                    GameText("YOU", color = Pink, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Black)
+                    GameText(if (isCreator) "YOU \u00b7 ROOM" else "YOU", color = Pink, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Black)
                 }
                 else -> key(player.seat) {
                     var settled by remember { mutableStateOf(false) }
@@ -120,7 +171,7 @@ private fun LobbySlot(player: Player?) {
                         )
                     }
                     GameText(
-                        "JOINED",
+                        if (isCreator) "ROOM" else "JOINED",
                         Modifier.alpha(reveal),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.labelMedium,

@@ -18,6 +18,7 @@ fun GameTopBar(
     musicEnabled: Boolean,
     onToggleMusic: () -> Unit,
     modifier: Modifier = Modifier,
+    freePlay: Boolean = false,
 ) {
     Row(
         modifier.fillMaxWidth().padding(top = 4.dp),
@@ -27,7 +28,7 @@ fun GameTopBar(
         GameButton("Leave", onLeave, style = GameButtonStyle.Ghost, size = GameButtonSize.Small, leading = "✕")
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             MusicToggle(musicEnabled, onToggleMusic)
-            CreditsChip(credits)
+            CreditsChip(credits, freePlay = freePlay)
         }
     }
 }

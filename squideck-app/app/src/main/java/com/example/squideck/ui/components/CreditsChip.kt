@@ -22,7 +22,7 @@ import com.example.squideck.ui.theme.White
 
 /** The player's credits, shown the same way on every screen. */
 @Composable
-fun CreditsChip(credits: UsCents, modifier: Modifier = Modifier) {
+fun CreditsChip(credits: UsCents, modifier: Modifier = Modifier, freePlay: Boolean = false) {
     val shape = RoundedCornerShape(50)
     Row(
         modifier
@@ -35,6 +35,11 @@ fun CreditsChip(credits: UsCents, modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        if (freePlay) {
+            // Nearby rooms don't touch credits, so the chip says so instead of showing a balance.
+            GameText("FREE PLAY", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+            return@Row
+        }
         GameText(
             "CREDITS",
             style = MaterialTheme.typography.labelSmall,

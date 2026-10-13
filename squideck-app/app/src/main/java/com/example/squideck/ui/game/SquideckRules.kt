@@ -21,10 +21,18 @@ import com.example.squideck.ui.theme.Ink
 import com.example.squideck.ui.theme.Pink
 import com.example.squideck.ui.theme.White
 
-/** Rules of the Squideck card-passing game, with the real numbers of the table they belong to. */
-fun squideckRules(economy: EconomyConfig, config: GameConfig = GameConfig()) = GameRules(
-    title = "${economy.entryCost} table",
-    details = { TableDetails(economy, config) },
+/**
+ * Rules of the Squideck card-passing game, with the real numbers of the table they belong to. Nearby rooms are
+ * [freePlay]: no entry and no prizes.
+ */
+fun squideckRules(
+    economy: EconomyConfig,
+    config: GameConfig = GameConfig(),
+    freePlay: Boolean = false,
+    title: String = if (freePlay) "Nearby room" else "${economy.entryCost} table",
+) = GameRules(
+    title = title,
+    details = { TableDetails(economy, config, freePlay) },
     // The tiles above carry every number (players, winners, entry, turn time, prizes); the rules don't repeat them.
     rules = listOf(
         RuleItem("Collect four of a kind", "Hold four cards with the same symbol."),
@@ -36,13 +44,14 @@ fun squideckRules(economy: EconomyConfig, config: GameConfig = GameConfig()) = G
 
 /** The table's facts and prizes, at the top of the info sheet. */
 @Composable
-private fun TableDetails(economy: EconomyConfig, config: GameConfig) {
+private fun TableDetails(economy: EconomyConfig, config: GameConfig, freePlay: Boolean) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Fact("Players", "${config.playerCount}", Modifier.weight(1f))
             Fact("Winners", "${config.winnerSlots}", Modifier.weight(1f))
-            Fact("Entry", economy.entryCost.toString(), Modifier.weight(1f))
+            Fact("Entry", if (freePlay) "Free" else economy.entryCost.toString(), Modifier.weight(1f))
         }
+        if (freePlay) return@Column
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Fact("1st", economy.payoutFor(1).toString(), Modifier.weight(1f), highlight = true)
             Fact("2nd", economy.payoutFor(2).toString(), Modifier.weight(1f))

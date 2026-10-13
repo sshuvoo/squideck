@@ -41,6 +41,19 @@ data class Settlement(
 }
 
 object Economy {
+    /** Places only, no money: for free-play (nearby) rounds. */
+    fun settleFree(game: GameState): Settlement? {
+        val seats = game.players.map { it.seat }
+        if (game.phase == Phase.Playing) return null
+        return Settlement(
+            places = game.winners + (seats - game.winners.toSet()),
+            payouts = seats.associateWith { UsCents(0) },
+            entryCost = UsCents(0),
+            platformFee = UsCents(0),
+            refunded = game.phase == Phase.Stalemate,
+        )
+    }
+
     /** Settles a finished round; returns null while it is still running. */
     fun settle(game: GameState, config: EconomyConfig): Settlement? {
         val seats = game.players.map { it.seat }

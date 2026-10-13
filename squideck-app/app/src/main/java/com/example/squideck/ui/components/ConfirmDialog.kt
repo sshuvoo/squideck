@@ -14,13 +14,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 
-/** The game's yes/no dialog: the safe choice is the teal key on the left, the action is the pink key. */
+/** The game's yes/no dialog: the safe choice is the teal key on the left, the action is the pink key. Pass no
+ * [dismissLabel] for a single-button notice. */
 @Composable
 fun ConfirmDialog(
     title: String,
     message: String,
     confirmLabel: String,
-    dismissLabel: String,
+    dismissLabel: String?,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -30,7 +31,7 @@ fun ConfirmDialog(
                 GameText(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
                 GameText(message, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    GameButton(dismissLabel, onDismiss, Modifier.weight(1f), style = GameButtonStyle.Secondary)
+                    if (dismissLabel != null) GameButton(dismissLabel, onDismiss, Modifier.weight(1f), style = GameButtonStyle.Secondary)
                     GameButton(confirmLabel, onConfirm, Modifier.weight(1f))
                 }
             }

@@ -28,11 +28,28 @@ data class SessionState(
     val economy: EconomyConfig = EconomyConfig(),
     /** Set once a round has finished. */
     val settlement: Settlement? = null,
+    /** Nearby games are just for fun: no entry fee and no prizes. */
+    val freePlay: Boolean = false,
+    /** Set for nearby games: whose room this is and what this phone may do in it. */
+    val room: RoomInfo? = null,
+    /** Set when the session ended on its own (room closed, connection lost); the UI shows it and leaves. */
+    val endedReason: String? = null,
 ) {
-    val canAffordEntry: Boolean get() = balance >= economy.entryCost
+    val canAffordEntry: Boolean get() = freePlay || balance >= economy.entryCost
     val isTableFull: Boolean get() = players.size == playerCount
     val isCountingDown: Boolean get() = countdown != null
 }
+
+/** A nearby room as seen from one phone. */
+data class RoomInfo(
+    /** Name of the player who created the room; the room is shown as theirs. */
+    val creatorName: String,
+    /** True on the room creator's phone. */
+    val isCreator: Boolean,
+)
+
+/** Who may start or restart a round: anyone at a bot table, only the creator in a nearby room. */
+val SessionState.canControlRound: Boolean get() = room?.isCreator ?: true
 
 /**
  * Boundary between UI and game source. [LocalBotSession] runs against bots; a future
@@ -41,8 +58,11 @@ data class SessionState(
 interface GameSession {
     val state: StateFlow<SessionState>
 
-    /** Starts a new round with the same players. Rounds begin on their own when the table fills; nobody is host. */
+    /** Starts a new round with the same players. Rounds begin on their own when the table fills. */
     fun restart()
+
+    /** Nearby room creator only: start now, with bots in the empty seats. */
+    fun startNow() {}
     fun pass(cardId: Int)
 
     /** Stops auto-play so the local player moves for themselves again. */

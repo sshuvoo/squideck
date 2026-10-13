@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.squideck.audio.GameMusic
+import com.example.squideck.ui.components.ConfirmDialog
 import com.example.squideck.ui.game.GameListScreen
 import com.example.squideck.ui.game.GameScreen
 import com.example.squideck.ui.game.GameViewModel
@@ -85,13 +86,15 @@ class MainActivity : ComponentActivity() {
                                 modifier = content,
                             )
                             Screen.GameList -> GameListScreen(
-                                state, viewModel::joinTable, viewModel::changeName, viewModel::refillWallet,
+                                state, viewModel::joinTable,
+                                viewModel::startNearbySearch, viewModel::stopNearbySearch, viewModel::createRoom, viewModel::joinRoom,
+                                viewModel::changeName, viewModel::refillWallet,
                                 // A clean exit: finish the activity, which also releases the music player.
                                 onExit = { finish() },
                                 modifier = content,
                             )
                             Screen.Lobby -> if (table != null) {
-                                LobbyScreen(table, state.musicEnabled, viewModel::toggleMusic, viewModel::leaveTable, content)
+                                LobbyScreen(table, state.musicEnabled, viewModel::toggleMusic, viewModel::leaveTable, viewModel::startRoomNow, content)
                             }
                             Screen.Game -> if (table != null) {
                                 GameScreen(
@@ -100,6 +103,17 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                         }
+                    }
+                    // A nearby room can end on its own (closed by its creator, connection lost); say why, then leave.
+                    table?.endedReason?.let { reason ->
+                        ConfirmDialog(
+                            title = "Room ended",
+                            message = reason,
+                            confirmLabel = "OK",
+                            dismissLabel = null,
+                            onConfirm = viewModel::leaveTable,
+                            onDismiss = viewModel::leaveTable,
+                        )
                     }
                 }
             }
