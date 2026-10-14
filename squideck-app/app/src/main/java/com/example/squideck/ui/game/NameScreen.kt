@@ -4,7 +4,9 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -35,11 +37,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.squideck.domain.profile.PlayerName
 import com.example.squideck.ui.components.GameButton
 import com.example.squideck.ui.components.GameText
 import com.example.squideck.ui.components.UppercaseTransformation
 import com.example.squideck.ui.theme.Pink
+import com.example.squideck.ui.theme.Teal
 import com.example.squideck.ui.theme.White
 
 /** First screen: who are you? The name and avatar are what other players see at the table. */
@@ -85,17 +89,29 @@ fun NameScreen(
     }
 }
 
-/** A row of every face; the chosen one grows and gets a pink ring. */
+/** Girls or boys, chosen with the guard-mask switch, in a centred grid (four per row); the chosen face grows and gets a pink ring. */
 @Composable
 private fun AvatarPicker(selected: Int, onPick: (Int) -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp).selectableGroup(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-        AvatarStyles.all.indices.forEach { id ->
+    var group by rememberSaveable { mutableStateOf(AvatarStyles.byId(selected).group) }
+    GuardMaskSwitch(
+        leftLabel = AvatarGroup.Girls.label,
+        rightLabel = AvatarGroup.Boys.label,
+        selected = group.ordinal,
+        onSelect = { group = AvatarGroup.entries[it] },
+    )
+    FlowRow(
+        Modifier.fillMaxWidth().padding(vertical = 4.dp).selectableGroup(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        maxItemsInEachRow = 4,
+    ) {
+        AvatarStyles.idsIn(group).forEach { id ->
             val chosen = id == selected
             val scale by animateFloatAsState(if (chosen) 1.15f else 1f, label = "avatar$id")
             AnimeAvatar(
                 AvatarStyles.byId(id),
                 Modifier
-                    .size(52.dp)
+                    .size(60.dp)
                     .scale(scale)
                     .border(if (chosen) 3.dp else 1.dp, if (chosen) Pink else White.copy(alpha = 0.25f), CircleShape)
                     .clip(CircleShape)
@@ -105,3 +121,4 @@ private fun AvatarPicker(selected: Int, onPick: (Int) -> Unit) {
         }
     }
 }
+

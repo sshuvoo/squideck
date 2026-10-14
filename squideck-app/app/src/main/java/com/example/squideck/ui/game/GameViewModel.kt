@@ -157,7 +157,7 @@ class GameViewModel(
         val name = playerName.value ?: return
         if (session.value != null) return
         stopNearbySearch()
-        session.value = HostSession(viewModelScope, name, avatarId.value, radios.host(), botAvatarIds = AvatarStyles.idsExcept(avatarId.value) + avatarId.value)
+        session.value = HostSession(viewModelScope, name, avatarId.value, radios.host(), botAvatarIds = AvatarStyles.botFaces(avatarId.value))
     }
 
     /** Joins a room found nearby, reusing the radio that found it. */
@@ -216,7 +216,7 @@ class GameViewModel(
                     profileStore = SharedPrefsProfileStore(app),
                     settingsStore = SharedPrefsSettingsStore(app),
                     sessionFactory = { scope, name, avatar ->
-                        LocalBotSession(scope, name, playerAvatarId = avatar, botAvatarIds = AvatarStyles.idsExcept(avatar))
+                        LocalBotSession(scope, name, playerAvatarId = avatar, botAvatarIds = AvatarStyles.botFaces(avatar))
                     },
                     radios = com.example.squideck.data.nearby.NearbyRadios(app),
                 )
